@@ -1,5 +1,5 @@
 # NorBench
-This repository contains a preliminary attempt at compiling a comprehensive set 
+This repository contains an emerging attempt at compiling a comprehensive set 
 natural language understanding (NLU) benchmarks for Norwegian.
 
 We list the existing test sets, their recommended evaluation metrics 
@@ -33,7 +33,6 @@ but in the future we plan to provide their standardized versions for easier benc
 
 | Task                        | Test Set               | Metrics| Evaluation code |
 |-----------------------------|------------------------|--------|-----------------|
-|Synonym detection            |                        |        |                 |
-|Analogical reasoning         |                        |        |                 |
-|Word-level polarity          |                        |        |                 | 
-|Word sense disambiguation in context|                 |  
+|Document-level ratings         |[Norwegian Review Corpus](https://github.com/ltgoslo/norec)                        |        |                 |
+|Political affiliation detection|[Talk of Norway](https://github.com/ltgoslo/talk-of-norway)                        |        |                 |
+|Dialect classification         |[NorDial](https://github.com/jerbarnes/norwegian_dialect)                        |        |                 | 
