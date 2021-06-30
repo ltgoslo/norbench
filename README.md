@@ -27,7 +27,7 @@ but in the future we plan to provide their standardized versions for easier benc
 |Synonym detection*            |[Norwegian Synonymy](https://github.com/ltgoslo/norwegian-synonyms)                        |        |                 |
 |Analogical reasoning*         |[Norwegian Analogy](https://github.com/ltgoslo/norwegian-analogies)                        |        |                 |
 |Word-level polarity*          |[NorSentLex](https://github.com/ltgoslo/norsentlex)                        |        |                 | 
-|Word sense disambiguation in context|[Norwegian WordNet](https://www.nb.no/sprakbanken/en/resource-catalogue/oai-nb-no-sbr-27/)      |Averaged macro F1 |[Preliminary example](https://github.com/ltgoslo/simple_elmo/blob/master/simple_elmo/examples/wsd_eval.py)|
+|Word sense disambiguation in context (WSDiC)|[Norwegian WordNet](https://www.nb.no/sprakbanken/en/resource-catalogue/oai-nb-no-sbr-27/)      |Averaged macro F1 |[Preliminary example](https://github.com/ltgoslo/simple_elmo/blob/master/simple_elmo/examples/wsd_eval.py)|
 
 ## Text classification tasks
 
