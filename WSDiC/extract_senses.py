@@ -2,6 +2,7 @@
 #! coding: utf-8
 
 import sys
+import json
 
 words = {}
 
@@ -27,4 +28,5 @@ for w in words:
             if words[w][sense] < 2:
                 out = False
         if out:
-            print(w, words[w])
+            print(json.dumps({"word": w, "senses": words[w]}, ensure_ascii=False))
+
