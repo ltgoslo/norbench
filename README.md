@@ -17,7 +17,7 @@ but in the future we plan to provide their standardized versions for easier benc
 |Sentence-level polarity      |[NoReC_sentence](https://github.com/ltgoslo/norec_sentence/)| Macro F1    |              |
 |Structured sentiment analysis|[NoReC_fine](https://github.com/ltgoslo/norec_fine)                        |        |                 |
 |Negation cues and scopes     |[NoReC_neg](https://github.com/ltgoslo/norec_neg/)                        |        |                 |
-|Co-reference resolution      |annotation ongoing                        |        |                 |
+|Co-reference resolution      |NARC (annotation ongoing)                        |        |                 |
 
 
 ## Lexical tasks
