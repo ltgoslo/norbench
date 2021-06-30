@@ -1,6 +1,6 @@
 # NorBench
 This repository contains an emerging attempt at compiling a comprehensive set 
-natural language understanding (NLU) benchmarks for Norwegian.
+of NLP benchmarks for Norwegian.
 
 We list the existing test sets, their recommended evaluation metrics 
 and provide links to the evaluation code (where available). 
