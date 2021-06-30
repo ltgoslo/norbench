@@ -1,0 +1,31 @@
+﻿	Semantically disambiguated gold corpus
+
+
+
+The Norwegian Language Bank has initiated a annotation of a gold corpus
+for Norwegian Bokmål and Nynorsk. As a part of the deliverables for the
+WordNet project, this corpus will be provided with partial semantic 
+annotation. 
+
+Currently only a short exerpt is distributed for illustrative purposes
+(Norwegian Bokmål only).
+
+The last field (tenth column) in the CONLL format used in the
+syntactic annotation is used to store the ontological type and numeric
+id of the relevant synset for the annotated token. This is not stricly
+in accordance with the specifications of the CONLL format, which does
+not provide a field for semantic annotation. Where this field is not a
+number, it is one of "lak" (word missing from the wordnet), "nil"
+(word in wordnet, but not this particular meaning), "pos" (word not in
+the wordnet, pos analysis is correct), "inval", "skipped" or
+completely empty (not annotated yet).
+
+Up to 10 instances of each lexeme will be annotated. The exeption is a
+group of very complex words (like "tid" (time), "ha" (to have), "være" 
+(to be)), where 25 instances will be annotated. 
+
+The annotation will be incremential, meaning that a significant number
+of tokens will not recieve a synset in the first round of annotation. 
+
+Future versions of this corpus will probably be an integrated
+part of the Language Bank Gold Corpus.
