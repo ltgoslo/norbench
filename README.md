@@ -33,7 +33,7 @@ but in the future we plan to provide their standardized versions for easier benc
 
 | Task                        | Test Set               | Metrics| Evaluation code |
 |-----------------------------|------------------------|--------|-----------------|
-|Document-level ratings         |[Norwegian Review Corpus](https://github.com/ltgoslo/norec)                        |        |                 |
+|Document-level ratings         |[Norwegian Review Corpus](https://github.com/ltgoslo/norec)                        |   Macro averaged F1      |  [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html)               |
 |Political affiliation detection|[Talk of Norway](https://github.com/ltgoslo/talk-of-norway)                        |        |                 |
 |Dialect classification in tweets  |[NorDial](https://github.com/jerbarnes/norwegian_dialect)                        |  Macro averaged F1      |  [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html)               |
 
