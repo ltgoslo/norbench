@@ -28,6 +28,7 @@ but in the future we plan to provide their standardized versions for easier benc
 |Analogical reasoning*         |[Norwegian Analogy](https://github.com/ltgoslo/norwegian-analogies)                        |        |                 |
 |Word-level polarity*          |[NorSentLex](https://github.com/ltgoslo/norsentlex)                        |   Accuracy     |  [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html)    |
 |Word sense disambiguation in context (WSDiC)|[Norwegian WordNet](https://www.nb.no/sprakbanken/en/resource-catalogue/oai-nb-no-sbr-27/)      |Averaged macro F1 |[Preliminary example](https://github.com/ltgoslo/simple_elmo/blob/master/simple_elmo/examples/wsd_eval.py)|
+|Lexical semantic change detection (LSCD)|[NorDiaChange](https://github.com/ltgoslo/nor_dia_change) | Spearman correlation, Accuracy |[SemEval'2020](https://github.com/akutuzov/semeval2020/blob/master/code/eval.py)|
 
 ## Text classification tasks
 
