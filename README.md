@@ -17,7 +17,7 @@ but in the future we plan to provide their standardized versions for easier benc
 |Sentence-level polarity      |[NoReC_sentence](https://github.com/ltgoslo/norec_sentence/)| Macro averaged F1      |  [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html)     |
 |Structured sentiment analysis|[NoReC_fine](https://github.com/ltgoslo/norec_fine)                        | Sentiment Graph F1 |  [Semeval 2022 evaluation script](https://github.com/jerbarnes/semeval22_structured_sentiment/blob/master/evaluation/evaluate_single_dataset.py)              |
 |Negation cues and scopes     |[NoReC_neg](https://github.com/ltgoslo/norec_neg/)                        |  StarSem Full Negation F1      | [StarSem Perl script](https://github.com/ltgoslo/norec_neg/blob/main/modeling/evaluation/eval.cd-sco.pl)                |
-|Co-reference resolution      |NARC (annotation ongoing)                        |        |                 |
+|Co-reference resolution      |NARC (annotation ongoing)|MUC, $B^3$, CEAFE, LEA|[evaluation notebook NARC](https://github.com/ltgoslo/Norwegian-Coreference-Corpus/blob/f077b9de830d753b04688558c6f46157ab8fefd0/code/notebooks/evaluation.ipynb) (using [corefeval](https://github.com/tollefj/coreference-eval))|
 
 
 ## Lexical tasks
