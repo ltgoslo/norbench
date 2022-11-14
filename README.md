@@ -2,10 +2,13 @@
 This repository contains an emerging attempt at compiling a comprehensive set 
 of NLP benchmarks for Norwegian.
 
-We list the existing test sets, their recommended evaluation metrics 
-and provide links to the evaluation code (where available). 
-Currently we only link to the original datasets, 
-but in the future we plan to provide their standardized versions for easier benchmarking.   
+We list the existing test sets, their recommended evaluation metrics
+and provide links to the original evaluation code (where available).
+The `evaluation_scripts` directory contains the recommended ready-to-use evaluation scripts for the main tasks
+(warning: work in progress!)
+
+Currently we only link to the original datasets,
+but in the future we plan to provide their standardized versions for easier benchmarking.
 
 ## Mainstream NLP tasks
 
