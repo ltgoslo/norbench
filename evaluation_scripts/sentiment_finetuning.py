@@ -12,9 +12,8 @@ import utils.pos_utils as pos_utils
 def test(training_lang,
          test_lang,
          split="test",
-         short_model_name="ltgoslo/norbert"):
+         short_model_name="ltgoslo/norbert", task="sentiment"):
     data_path = "../data/sentiment/"
-    task = "sentiment"
     checkpoints_path = "checkpoints/"
     trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name)
     # Model parameters
@@ -50,10 +49,9 @@ def test(training_lang,
 def train(training_lang,
           short_model_name="ltgoslo/norbert",
           epochs=10,
-          use_class_weights=False):
+          use_class_weights=False, task="sentiment"):
 
     data_path = "../data/sentiment/"
-    task = "sentiment"
     checkpoints_path = "checkpoints/"
 
     trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name,
@@ -153,21 +151,22 @@ if __name__ == "__main__":
 
     data_dir = "../data/sentiment/"
     training_language = args.training_language
-    model_name = args.model_name
+    run_name = args.model_name
     model_identifier = args.short_model_name
+    current_task = "sentiment"
 
     # Train models
-    training_object = train(training_language, short_model_name=model_identifier, epochs=args.epochs)
+    training_object = train(training_language, short_model_name=model_identifier, epochs=args.epochs, task=current_task)
 
     dev_score = test(training_language,
                      training_language,
                      "dev",
-                     short_model_name=model_identifier)
+                     short_model_name=model_identifier, task=current_task)
 
     test_score = test(training_language,
                       training_language,
                       "test",
-                      short_model_name=model_identifier)
+                      short_model_name=model_identifier, task=current_task)
 
     table = pd.DataFrame({"Train Lang": training_language,
                           "Dev F1": [dev_score],
@@ -176,4 +175,5 @@ if __name__ == "__main__":
 
     print(table)
     print(table.style.hide(axis='index').to_latex())
-    table.to_csv("results/{}_sentiment.tsv".format(model_name.replace('/','_')), sep="\t")
+    table.to_csv(f"results/{training_language}_{run_name}_{current_task}.tsv", sep="\t")
+    print(f"Scores saved to results/{training_language}_{run_name}_{current_task}.tsv")

@@ -81,8 +81,8 @@ if __name__ == "__main__":
 
     model_type =  args.model_type 
     model_name = args.model_name
-    dataset_name = args.run_model_name
-    task_name = "ner"
+    run_name = args.run_model_name
+    current_task = "ner"
     training_language = args.training_language
     lang_path = ner_data_path + training_language + "/"
 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     save_total_limit = 1  # param {type: "integer"}
     load_best_model_at_end = True  # @param {type: "boolean"}
 
-    output_dir = dataset_name + "_" + str(per_device_train_batch_size)
+    output_dir = run_name + "_" + str(per_device_train_batch_size)
     overwrite_output_dir = False
 
     """# Initialize Training"""
@@ -234,5 +234,5 @@ if __name__ == "__main__":
 
     print(table)
     print(table.style.hide(axis='index').to_latex())
-    table.to_csv("results/{}_ner.tsv".format(dataset_name.replace('/', '_')), sep="\t")
-
+    table.to_csv(f"results/{training_language}_{run_name}_{current_task}.tsv", sep="\t")
+    print(f"Scores saved to results/{training_language}_{run_name}_{current_task}.tsv")

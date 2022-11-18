@@ -87,10 +87,10 @@ def convert_examples_to_tf_dataset(
                 add_special_tokens=True,
                 max_length=max_length,  # truncates if len(s) > max_length
                 return_attention_mask=True,
-                pad_to_max_length=True,  # pads to the right by default
+                padding="longest",  # pads to the right by default
                 truncation=True
             )
-            
+
             input_ids, attention_mask = (input_dict["input_ids"], input_dict['attention_mask'])
 
             features.append(
@@ -100,7 +100,7 @@ def convert_examples_to_tf_dataset(
             )
 
     def gen():
-        
+
         if token_type_ids_input == True and token_type_attr == True:
             for f in features:
                 yield (
@@ -179,11 +179,10 @@ def load_dataset(lang_path, tokenizer, model, max_length, balanced=False,
 
 
     try:
-        
+
         dataset = convert_examples_to_tf_dataset(
             [(Example(text=text, category_index=label)) for label, text in df.values], tokenizer, model,
                 max_length=max_length, token_type_ids_input=token_type_ids_input)
-        
 
     except:
         dataset = convert_examples_to_tf_dataset(
