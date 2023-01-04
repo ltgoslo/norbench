@@ -70,7 +70,6 @@ def convert_examples_to_tf_dataset(examples, tokenizer, model, tagset, max_lengt
                 )
             )
         else:
-            print('no types')
             features.append(
                 InputFeatures(
                     input_ids=input_ids,
@@ -127,11 +126,11 @@ def convert_examples_to_tf_dataset(examples, tokenizer, model, tagset, max_lengt
       )
 
 
-def load_dataset(lang_path, tokenizer, model, max_length, tagset, dataset_name="test"):
+def load_dataset(data_path, tokenizer, model, max_length, tagset, dataset_name="test"):
     """Loads conllu file, returns a list of dictionaries (one for each sentence) and a TF dataset"""
     logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
- 
-    data = read_conll(glob.glob(lang_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0])
+    
+    data = read_conll(glob.glob(data_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0])
 
     examples = [{"id": sent_id, "tokens": tokens, "tags": tags} for sent_id, tokens, tags in
                 zip(data[0], data[1], data[2])]

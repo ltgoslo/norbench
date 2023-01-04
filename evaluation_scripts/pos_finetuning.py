@@ -9,13 +9,12 @@ import utils.model_utils as model_utils
 import utils.pos_utils as pos_utils
 
 
-def test(training_lang,
-         test_lang,
+def test(data_path,
          split="test",
          short_model_name="ltgoslo/norbert",
-         epochs=5, data_path=None, task="pos"):
+         epochs=5, task="pos"):
     checkpoints_path = "checkpoints/"
-    trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name)
     # Model parameters
     max_length = 256
     batch_size = 8
@@ -26,14 +25,14 @@ def test(training_lang,
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, tagset=tagset,
                         eval_batch_size=64)
-    weights_path = checkpoints_path + training_lang + "/"
+    weights_path = checkpoints_path + task + "/"
     weights_filename = short_model_name.replace("/", "_") + "_pos.hdf5"
     print("Using weights from", weights_path + weights_filename)
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
     # trainer.setup_checkpoint(checkpoints_path)
     trainer.prepare_data()
-    test_lang_path = data_path + test_lang
+    test_lang_path = data_path + task
     test_data, test_dataset = data_preparation_pos.load_dataset(test_lang_path, trainer.tokenizer, trainer.model,
                                                                 max_length, trainer.tagset,
                                                                 dataset_name=split)
@@ -45,21 +44,21 @@ def test(training_lang,
                                     steps=test_batches,
                                     verbose=1)
     score = trainer.metric(test_preds, test_data, split) * 100
-    print("{0}-{1} {2}: {3:.1f}".format(training_lang, test_lang, split, score))
+    print("{0}: {1:.1f}".format(split, score))
     return score
 
 
-def train(training_lang, short_model_name="ltgoslo/norbert",
-          epochs=10, data_path=None, task="pos"):
+def train(data_path, short_model_name="ltgoslo/norbert",
+          epochs=10, task="pos", batch_size=8, learning_rate=2e-5):
     checkpoints_path = "checkpoints/"
 
-    trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name)
     
     #
     # Model parameters
     max_length = 256
-    batch_size = 8
-    learning_rate = 2e-5
+    # batch_size = 8
+    # learning_rate = 2e-5
     tagset = pos_utils.get_ud_tags()
     num_labels = len(tagset)
     #
@@ -147,44 +146,43 @@ def get_score_pos(preds, dataset_name, eval_info):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="norbert")
+    parser.add_argument("--path_to_dataset")
     parser.add_argument("--short_model_name", default="ltgoslo/norbert")
     parser.add_argument("--training_language", default="nob")
+    parser.add_argument("--task", default="pos")
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--batch_size", default=8)
+    parser.add_argument("--learning_rate", default=2e-5)
 
     args = parser.parse_args()
 
-    training_language = args.training_language
-    ud_data_path = "../data/pos/"
+    data_path = args.path_to_dataset
     run_name = args.model_name
     model_identifier = args.short_model_name
-    current_task = "pos"
+    current_task = args.task
 
     # Train models
-    training_object = train(training_language, short_model_name=model_identifier,
-                            data_path=ud_data_path, task=current_task, epochs=args.epochs)
+    training_object = train(data_path, short_model_name=model_identifier, task=current_task, epochs=args.epochs,
+    batch_size=args.batch_size, learning_rate=args.learing_rate)
 
     print('TRAINING')
-    dev_score = test(training_language,
-                     training_language,
+    dev_score = test(data_path,
                      "dev",
-                     short_model_name=model_identifier,
-                     data_path=ud_data_path, task=current_task)
+                     short_model_name=model_identifier, task=current_task)
 
     print('TESTING')
-    test_score = test(training_language,
-                      training_language,
+    test_score = test(data_path,
                       "test",
-                      short_model_name=model_identifier,
-                      data_path=ud_data_path, task=current_task)
+                      short_model_name=model_identifier, task=current_task)
 
     print('DEV')
 
-    table = pd.DataFrame({"Language": training_language,
+    table = pd.DataFrame({
                           "Dev Accuracy": [dev_score],
                           "Test Accuracy": [test_score]
                           })
 
     print(table)
     print(table.style.hide(axis='index').to_latex())
-    table.to_csv(f"results/{training_language}_{run_name}_{current_task}.tsv", sep="\t")
-    print(f"Scores saved to results/{training_language}_{run_name}_{current_task}.tsv")
+    table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
+    print(f"Scores saved to results/_{run_name}_{current_task}.tsv")

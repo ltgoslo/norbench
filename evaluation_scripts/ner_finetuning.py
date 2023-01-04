@@ -6,7 +6,10 @@ import pandas as pd
 import os
 import glob
 import numpy as np
+import tensorflow as tf
 from utils.ner_utils import models_type
+from utils.model_utils import create_model
+import random as python_random
 import data_preparation.data_preparation_ner as data_preparation_ner
 import evaluate_ner
 from datasets import load_metric
@@ -27,8 +30,13 @@ warnings.filterwarnings("ignore")
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 tagset = data_preparation_ner.tagset
 
+# For reproducibility:
+seed = 42
+np.random.seed(seed)
+python_random.seed(seed)
+tf.random.set_seed(seed)
 
-def compute_metrics(p):
+def seq_ev_compute_metrics(p):
     "metrics that will be counted during evaluation"
 
     predictions, labels = p
@@ -67,65 +75,31 @@ def get_predictions(trainer, tokenized_data, tagset=tagset):
     return real_predictions
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", default="auto")
-    parser.add_argument("--model_name", default="ltgoslo/norbert")
-    parser.add_argument("--run_model_name", default="norne_nob")
-    parser.add_argument("--training_language", default="nob")
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--use_seqeval_evaluation", type=bool, default=False)
-    args = parser.parse_args()
+def model_init(model_name, task, tagset):
+    
+    model, tokenizer = create_model(model_name, task, len(tagset))
+    
+    return model, tokenizer
 
-    ner_data_path = "../data/ner/"
 
-    model_type =  args.model_type 
-    model_name = args.model_name
-    run_name = args.run_model_name
-    current_task = "ner"
-    training_language = args.training_language
-    lang_path = ner_data_path + training_language + "/"
-
-    overwrite_cache = True
-    seed = 42
-    set_seed(seed)
-
-    # Tokenizer
-    padding = False
-    max_length = 512
-    label_all_tokens = False
-
-    # Training
-    num_train_epochs = args.epochs  # @param {type: "number"}
-    per_device_train_batch_size = 16  # param {type: "integer"}
-    per_device_eval_batch_size = 32  # param {type: "integer"}
-    learning_rate = 3e-05  # @param {type: "number"}
-    weight_decay = 0.0  # param {type: "number"}
-    adam_beta1 = 0.9  # param {type: "number"}
-    adam_beta2 = 0.999  # param {type: "number"}
-    adam_epsilon = 1e-08  # param {type: "number"}
-    max_grad_norm = 1.0  # param {type: "number"}
-    num_warmup_steps = 750  # @param {type: "number"}
+def init_args(output_dir, epochs=20):
+    num_train_epochs = epochs
+    per_device_train_batch_size = 16
+    per_device_eval_batch_size = 32
+    learning_rate = 3e-05
+    weight_decay = 0.0
+    adam_beta1 = 0.9
+    adam_beta2 = 0.999
+    adam_epsilon = 1e-08
+    max_grad_norm = 1.0
+    num_warmup_steps = 750
     save_strategy = 'epoch'
-    save_total_limit = 1  # param {type: "integer"}
-    load_best_model_at_end = True  # @param {type: "boolean"}
+    save_total_limit = 1
+    load_best_model_at_end = True
 
-    output_dir = run_name + "_" + str(per_device_train_batch_size)
+    output_dir = output_dir
     overwrite_output_dir = False
-
-    """# Initialize Training"""
-    if model_type in models_type:
-        if model_name in models_type[model_type]["model_names"].keys():
-            model = models_type[model_type]["model"](models_type[model_type]["model_names"][model_name], num_labels=len(tagset))
-            tokenizer = models_type[model_type]["tokenizer"](models_type[model_type]["model_names"][model_name])
-        else:
-            model = models_type[model_type]["model"](model_name, num_labels=len(tagset))
-            tokenizer = models_type[model_type]["tokenizer"](model_name)
-    else:
-        model = AutoModelForTokenClassification.from_pretrained(model_name, num_labels=len(tagset))
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-    # Load the dataset
-    tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, lang_path)
+    
 
     training_args = TrainingArguments(
         output_dir=output_dir,
@@ -150,8 +124,17 @@ if __name__ == "__main__":
         save_total_limit=save_total_limit,
     )
 
+    return training_args, output_dir
+
+
+def initialization_trainer(model, tokenizer, tokenized_data, data_collator, output_dir, epochs, use_seqeval_evaluation, max_length=512, overwrite_cache=True, padding=False, label_all_tokens=False):
+    
+    set_seed(seed)
+
+    training_args, output_dir = init_args(output_dir, epochs)
+
     # Initialize our Trainer
-    if args.use_seqeval_evaluation == False:
+    if use_seqeval_evaluation == False:
         trainer = Trainer(
             model=model,
             args=training_args,
@@ -168,22 +151,30 @@ if __name__ == "__main__":
             eval_dataset=tokenized_data["dev"],
             tokenizer=tokenizer,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=seq_ev_compute_metrics,
         )
+    return trainer
 
 
-    """# Start Training"""
+def train_use_eval(data_path, model_name, run_name, task, epochs, use_seqeval_evaluation, tagset=tagset):
+    
+    checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
 
+    # Load the dataset
+    model, tokenizer = model_init(model_name, task, tagset)
+    tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path)
+
+    trainer = initialization_trainer(model, tokenizer, tokenized_data, data_collator, checkpoints_path, epochs, use_seqeval_evaluation)
     train_result = trainer.train()
     trainer.save_model()  # Saves the tokenizer too for easy upload
 
     # Need to save the state, since Trainer.save_model saves only the tokenizer with the model
     trainer.state.save_to_json(
-        os.path.join(training_args.output_dir, "trainer_state.json")
+        os.path.join(checkpoints_path, "trainer_state.json")
     )
     #
     # Print Results
-    output_train_file = os.path.join(output_dir, "train_results.txt")
+    output_train_file = os.path.join(checkpoints_path, "train_results.txt")
     with open(output_train_file, "w") as writer:
         print("**Train results**")
         for key, value in sorted(train_result.metrics.items()):
@@ -195,24 +186,44 @@ if __name__ == "__main__":
     print("**Evaluate**")
     results = trainer.evaluate()
 
-    output_eval_file = os.path.join(output_dir, "eval_results.txt")
+    output_eval_file = os.path.join(checkpoints_path, "eval_results.txt")
     with open(output_eval_file, "w") as writer:
         print("**Eval results**")
         for key, value in results.items():
             print(f"{key} = {value}")
             writer.write(f"{key} = {value}\n")
 
-    """# Run Predictions on the Test Dataset"""
 
+def test(data_path, model_name, task, run_name, trainer=None, tagset=tagset):
+    """# Run Predictions on the Test Dataset"""
+    
+    if trainer == None:
+        _, tokenizer = model_init(model_name, task, tagset)
+        
+        checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
+
+        path_to_model = glob.glob(checkpoints_path + 'checkpoint-*/')[0]
+        model = AutoModelForTokenClassification.from_pretrained(path_to_model)
+
+        args, _ = init_args(checkpoints_path)
+
+        tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path, full_pipeline=False)
+        
+        trainer = Trainer(
+                model=model,
+                args=args,
+                tokenizer=tokenizer,
+                data_collator=data_collator,
+            )
+    
+      
     print("**Predict**")
     real_predictions = get_predictions(trainer, tokenized_data)
 
-    # print(f"Scores on test dataset: {predictions}")
-
     print('PREPARING TO SAVE PREDICTIONS')
 
-    path_to_test = glob.glob(lang_path + "/*{}.conllu".format('test'.split("_")[0]))[0]
-    path_to_predictions = lang_path+"predicted_{}_{}.conllu".format(training_language, model_name.replace('/', '_'))
+    path_to_test = glob.glob(data_path + "/*{}.conllu".format('test'.split("_")[0]))[0]
+    path_to_predictions = data_path+"predicted_{}.conllu".format(model_name.replace('/', '_'))
 
     test_conll = parse(open(path_to_test, "r").read())
 
@@ -227,12 +238,40 @@ if __name__ == "__main__":
 
     print('Scores:')
     test_results = evaluate_ner.evaluation(path_to_predictions, path_to_test)
+    return test_results
 
-    table = pd.DataFrame({"Train Lang": training_language,
-                          "Test F1": [test_results]
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", default="ltgoslo/norbert")
+    parser.add_argument("--run_model_name", default="norne_nob")
+    parser.add_argument("--path_to_dataset")
+    parser.add_argument("--task", default="ner")
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--use_seqeval_evaluation", type=bool, default=False)
+    args = parser.parse_args()
+
+
+    data_path = args.path_to_dataset
+    model_name = args.model_name
+    run_name = args.run_model_name
+    current_task = args.task
+    epochs = args.epochs
+    use_seqeval_evaluation = args.use_seqeval_evaluation
+
+    trainer = train_use_eval(data_path, model_name, run_name, current_task, epochs, use_seqeval_evaluation)
+
+
+    """# Run Predictions on the Test Dataset"""
+
+    print("**Predict**")
+    test_results = test(data_path, model_name, current_task,  run_name, trainer)
+
+    table = pd.DataFrame({
+                          "Test F1": [test_results],
                           })
 
     print(table)
     print(table.style.hide(axis='index').to_latex())
-    table.to_csv(f"results/{training_language}_{run_name}_{current_task}.tsv", sep="\t")
-    print(f"Scores saved to results/{training_language}_{run_name}_{current_task}.tsv")
+    table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
+    print(f"Scores saved to results/_{run_name}_{current_task}.tsv")
