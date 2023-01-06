@@ -22,6 +22,8 @@ At the moment, we have the evaluation scripts for [4 NLP tasks](http://wiki.nlpl
     - [How to run the training script](#NER_SCRIPT)
     - [Evaluation](#NER_EVAL)
     - [Available Models](#NER_MODELS)
+* [Run tasks](#ALL_TASKS) 
+  - [Parameters](#ALL_PARAMS) 
 
 ### <a name="STRUCT"></a> Structure 
 
@@ -261,3 +263,37 @@ The list below describes the models for which it was possible to successfully ob
 - Bert-Base-En-Fr-De-No-Da-Cased: `Geotrend/bert-base-en-fr-de-no-da-cased` 
 - La/Bse: `La/Bse`
 - Electra-Small-Nordic: `jonfd/electra-small-nordic` --  the repository with the model files has been downloaded to the directory
+
+### <a name="ALL_TASKS"></a> Run tasks
+To run benchmark tasks `all_tasks.py` should be used.
+
+The current script provides the ability to run all benchmark tasks (that were mentioned above in details) for one model or all models for one task.
+
+#### <a name="ALL_PARAMS"></a>  Parameters
+
+* `--task` - the name of the task: pos/ner/sentiment/all should be used. If nothing was entered by user, all tasks will be run
+* `--path_to_dataset` - path to the folder with data for current task. If 'ner' was chosen as a task, folder with the corresponding dataset should be entered. If one wants to run all benchmark tasks, there are other arguments that are more suitable for this (mentioned below)
+
+* `--path_to_dataset_pos` - path to the folder with data for pos task if 'all' in task was used
+
+* `--path_to_dataset_ner` - path to the folder with data for ner task if 'all' in task was used
+
+* `--path_to_dataset_sent` - path to the folder with data for binary sentiment task if 'all' in task was used
+
+* `--model_name` - name of the model / 'all' to run all models that were tested for Norbench. Model name will be used to save checkpoints for the current model. 
+
+* `--path_to_model` - path to model (can be added either as path or as full model name from Higgingface library). 
+
+  Path to model can be entered in severeal ways:
+  + Firstly: in model_names (`model_utils.py`), the user can add a convenient abbreviation for the model name (if a specific model is not yet in the list): `mbert`
+  + model name can be submitted as a full model name mentinoed in transformer library: `bert-base-multilingual-cased`
+  + filesystem path to the model available locally
+
+* `--do_train` - True if model will be trained from scratch. Train, evaluation and test will be run.
+
+* `--use_class_weights_for_sent` -  a parameter that determines whether classes will be balanced when the model is running 
+(classes are balanced when a `FALSE` value is passed to the parameter)
+
+* `--use_seqeval_evaluation_for_ner` -  boolean variable indicating whether to use the seqeval metric during validation
+
+* `--epochs` -  number of training epochs (`10` by default)
