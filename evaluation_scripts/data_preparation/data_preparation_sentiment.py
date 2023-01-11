@@ -87,7 +87,7 @@ def convert_examples_to_tf_dataset(
                 add_special_tokens=True,
                 max_length=max_length,  # truncates if len(s) > max_length
                 return_attention_mask=True,
-                padding="longest",  # pads to the right by default
+                pad_to_max_length=True,  # pads to the right by default
                 truncation=True
             )
 

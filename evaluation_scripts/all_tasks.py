@@ -30,8 +30,8 @@ def run_tasks(do_train, current_task, data_path, model_identifier, run_name, epo
     
     if do_train == True:
         if current_task == 'ner':
-            trainer = tasks[current_task]['train'](data_path, run_name, model_identifier, current_task, epochs, use_seqeval_evaluation_for_ner)
-            test_results =  tasks[current_task]['test'](data_path, run_name, current_task, model_identifier, trainer)
+            trainer = tasks[current_task]['train'](data_path, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner)
+            test_results =  tasks[current_task]['test'](data_path, model_identifier, current_task, run_name, trainer)
             table = pd.DataFrame({
                             "Test F1": [test_results],
                             })
@@ -71,7 +71,7 @@ def run_models_for_current_task(do_train, current_task, data_path, run_name, mod
         for mod_path_bench, mod_ident_bench in run_all_models.items():
             run_tasks(do_train, current_task, data_path, mod_ident_bench, mod_path_bench, epochs, use_seqeval_evaluation_for_ner, use_class_weights_for_sent)
     else:
-        run_tasks(do_train, current_task, data_path, run_name, model_identifier, epochs, use_seqeval_evaluation_for_ner, use_class_weights_for_sent)
+        run_tasks(do_train, current_task, data_path, model_identifier, run_name, epochs, use_seqeval_evaluation_for_ner, use_class_weights_for_sent)
 
 
 
@@ -83,8 +83,9 @@ if __name__ == "__main__":
     parser.add_argument("--path_to_dataset_pos",  help="path to the folder with data for pos task if 'all' in task was used", default="")
     parser.add_argument("--path_to_dataset_ner", help="path to the folder with data for ner task if 'all' in task was used", default="")
     parser.add_argument("--path_to_dataset_sent", help="path to the folder with data for binary sentiment task if 'all' in task was used", default="")
-    parser.add_argument("--model_name",  help="name of the model / 'all' to run all models that were tested for Norbench", default="all")
+    parser.add_argument("--model_name",  help="name of the model / 'all' to run all models that were tested for Norbench", default="")
     parser.add_argument("--path_to_model", help="path to model", default="ltgoslo/norbert")
+    parser.add_argument("--download_cur_data", help="True if downloading of repositories with relevant data is needed",  type=bool, default=False)
     parser.add_argument("--do_train", help="True if model will be trained from scratch", type=bool, default=True)
     parser.add_argument("--batch_size", default=8)
     parser.add_argument("--learning_rate", default=2e-5)
@@ -94,7 +95,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    data_path = args.path_to_dataset
+    if args.download_cur_data == True:
+        data_path = args.download_cur_data
+    else:
+        data_path = args.path_to_dataset
+
     run_name = args.model_name
     model_identifier = args.path_to_model
     current_task = args.task

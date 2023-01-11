@@ -8,7 +8,7 @@ import glob
 import numpy as np
 import tensorflow as tf
 from utils.ner_utils import models_type
-from utils.model_utils import create_model
+from utils.model_utils import create_model, download_datasets
 import random as python_random
 import data_preparation.data_preparation_ner as data_preparation_ner
 import evaluate_ner
@@ -161,6 +161,8 @@ def train_use_eval(data_path, model_name, run_name, task, epochs, use_seqeval_ev
     checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
 
     # Load the dataset
+    if data_path == True:
+        download_datasets(task)
     model, tokenizer = model_init(model_name, task, tagset)
     tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path)
 

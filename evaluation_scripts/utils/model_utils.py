@@ -3,6 +3,8 @@
 import tensorflow as tf
 import sentencepiece
 import re
+import git
+from git.repo.base import Repo
 import importlib
 from transformers import (TFBertForSequenceClassification, BertTokenizer, AutoTokenizer, AutoModelForTokenClassification, BertTokenizerFast,
                           TFXLMRobertaForSequenceClassification, XLMRobertaTokenizer, TFAutoModelForSequenceClassification,
@@ -74,6 +76,16 @@ model_names = {
         "distilbert": "distilbert-base-uncased",
         "scandibert": "vesteinn/ScandiBERT"
     }
+
+paths_to_relevant_data = {
+    'sentiment': ["https://github.com/ltgoslo/norec_sentence"],
+    'pos': [
+        'https://github.com/UniversalDependencies/UD_Norwegian-Bokmaal',
+        'https://github.com/UniversalDependencies/UD_Norwegian-Nynorsk',
+        'https://github.com/UniversalDependencies/UD_Norwegian-NynorskLIA'
+        ],
+    'ner': ['https://github.com/ltgoslo/norne']
+}
 
 def set_tf_memory_growth():
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -178,3 +190,13 @@ def make_batches(dataset, batch_size, repetitions, shuffle=True):
     n_batches = len(list(dataset.as_numpy_iterator()))
     dataset = dataset.repeat(repetitions)
     return dataset, n_batches
+
+
+def download_datasets(task, language='no'):
+    for paths in paths_to_relevant_data[task]:
+        if len(paths_to_relevant_data[task]) > 1:
+            sub_folder = paths.split('-')[1]
+            Repo.clone_from(paths, f"data/{task}/{sub_folder}/")
+        else:
+            Repo.clone_from(paths, f"data/{task}/")
+    print('cnoning was done')

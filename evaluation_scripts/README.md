@@ -274,6 +274,8 @@ The current script provides the ability to run all benchmark tasks (that were me
 * `--task` - the name of the task: pos/ner/sentiment/all should be used. If nothing was entered by user, all tasks will be run
 * `--path_to_dataset` - path to the folder with data for current task. If 'ner' was chosen as a task, folder with the corresponding dataset should be entered. If one wants to run all benchmark tasks, there are other arguments that are more suitable for this (mentioned below)
 
+* `--download_cur_data` - Current argument provides user to download the original datasets from github: True if downloading is needed (False as default)
+
 * `--path_to_dataset_pos` - path to the folder with data for pos task if 'all' in task was used
 
 * `--path_to_dataset_ner` - path to the folder with data for ner task if 'all' in task was used

@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     # Train models
 
-    training_object = train(data_path, short_model_name=model_identifier, epochs=args.epochs, task=current_task, atch_size=args.batch_size, learning_rate=args.learning_rate)
+    training_object = train(data_path, short_model_name=model_identifier, epochs=args.epochs, task=current_task, batch_size=args.batch_size, learning_rate=args.learning_rate)
 
     dev_score = test(data_path,
                      "dev",

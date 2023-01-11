@@ -120,7 +120,10 @@ class Trainer:
         for dataset_name in tqdm(dataset_names):
             # Load plain data and TF dataset
             if self.task == "pos":
-                # print(self.lang_path, )
+
+                if self.data_path == True:
+                    model_utils.download_datasets(self.task)
+
                 data, dataset = data_preparation_pos.load_dataset(
                     self.data_path, self.tokenizer, self.model, self.max_length,
                     tagset=self.tagset, dataset_name=dataset_name
@@ -134,6 +137,9 @@ class Trainer:
                     balanced = True
                 self.balanced = balanced
                 self.limit = limit
+                if self.data_path == True:
+                    model_utils.download_datasets(self.task)
+
                 data, dataset = data_preparation_sentiment.load_dataset(
                     self.data_path, self.tokenizer, self.model, self.max_length,
                     balanced=balanced, limit=limit, dataset_name=dataset_name
