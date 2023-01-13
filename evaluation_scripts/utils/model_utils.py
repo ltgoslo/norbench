@@ -3,11 +3,14 @@
 import tensorflow as tf
 import sentencepiece
 import re
+import git
+from git.repo.base import Repo
 import importlib
-from transformers import (TFBertForSequenceClassification, BertTokenizer, AutoTokenizer,
+from transformers import (TFBertForSequenceClassification, BertTokenizer, AutoTokenizer, AutoModelForTokenClassification, BertTokenizerFast,
                           TFXLMRobertaForSequenceClassification, XLMRobertaTokenizer, TFAutoModelForSequenceClassification,
                           TFBertForTokenClassification, TFXLMRobertaForTokenClassification, TFAutoModelForTokenClassification,
-                          TFDistilBertForTokenClassification, TFDistilBertForSequenceClassification, DistilBertTokenizer)
+                          TFDistilBertForTokenClassification, TFDistilBertForSequenceClassification, DistilBertTokenizer, 
+                          DistilBertForTokenClassification, DistilBertTokenizerFast, BertForTokenClassification, XLMRobertaForTokenClassification)
 
 from data_preparation.data_preparation_pos import *
 
@@ -15,18 +18,22 @@ from data_preparation.data_preparation_pos import *
 models = {
     "bert": {
         "pos": TFBertForTokenClassification.from_pretrained,
+        'ner': BertForTokenClassification.from_pretrained,
         "sentiment": TFBertForSequenceClassification.from_pretrained,
     },
     "xlm-roberta": {
         "pos": TFXLMRobertaForTokenClassification.from_pretrained,
+        'ner': XLMRobertaForTokenClassification.from_pretrained,
         "sentiment": TFXLMRobertaForSequenceClassification.from_pretrained,
     },
     "distilbert": {
         "pos": TFDistilBertForTokenClassification.from_pretrained,
+        'ner': DistilBertForTokenClassification.from_pretrained,
         "sentiment": TFDistilBertForSequenceClassification.from_pretrained,
     },
     "auto": {
         "pos": TFAutoModelForTokenClassification.from_pretrained,
+        'ner': AutoModelForTokenClassification.from_pretrained,
         "sentiment": TFAutoModelForSequenceClassification.from_pretrained
     }
 }
@@ -34,18 +41,22 @@ models = {
 tokenizers = {
     "bert": {
         "pos": tokenizer_class_subword_tokenization(BertTokenizer).from_pretrained,
+        'ner': BertTokenizerFast.from_pretrained,
         "sentiment": BertTokenizer.from_pretrained
     },
     "xlm-roberta": {
         "pos": tokenizer_class_subword_tokenization(XLMRobertaTokenizerFast).from_pretrained,
+        'ner': XLMRobertaTokenizerFast.from_pretrained,
         "sentiment": XLMRobertaTokenizer.from_pretrained
     },
     "distilbert": {
         "pos": tokenizer_class_subword_tokenization(DistilBertTokenizer).from_pretrained,
+        'ner': DistilBertTokenizerFast.from_pretrained,
         "sentiment": DistilBertTokenizer.from_pretrained
     },
     "auto": {
         "pos": tokenizer_class_subword_tokenization(AutoTokenizer).from_pretrained,
+        'ner': AutoTokenizer.from_pretrained,
         "sentiment": AutoTokenizer.from_pretrained
     }
 }
@@ -62,8 +73,19 @@ model_names = {
         "xlm-roberta-base": "xlm-roberta-base",
         "xlm-roberta": "xlm-roberta-base",
         "nb-bert-base": "NbAiLab/nb-bert-base",
-        "distilbert": "distilbert-base-uncased"
+        "distilbert": "distilbert-base-uncased",
+        "scandibert": "vesteinn/ScandiBERT"
     }
+
+paths_to_relevant_data = {
+    'sentiment': ["https://github.com/ltgoslo/norec_sentence"],
+    'pos': [
+        'https://github.com/UniversalDependencies/UD_Norwegian-Bokmaal',
+        'https://github.com/UniversalDependencies/UD_Norwegian-Nynorsk',
+        'https://github.com/UniversalDependencies/UD_Norwegian-NynorskLIA'
+        ],
+    'ner': ['https://github.com/ltgoslo/norne']
+}
 
 def set_tf_memory_growth():
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -118,13 +140,16 @@ def get_relevant_auto_tokenizer_func(model):
       return getattr(importlib.import_module(get_mod.group(0)[:-1]), tokenizers[0])
 
 
-def create_model(short_model_name, task, num_labels, from_pt=False):
+def create_model(short_model_name, task, num_labels, do_lower_case=False, from_pt=False):
     short_name = get_name_from_dict_keys(short_model_name)
 
     try:
-      model = models[short_name][task](get_full_model_names(short_model_name), num_labels=num_labels)
+        model = models[short_name][task](get_full_model_names(short_model_name), num_labels=num_labels)
     except:
-      model = models[short_name][task](get_full_model_names(short_model_name), num_labels=num_labels, from_pt = True)
+        try:
+            model = models[short_name][task](get_full_model_names(short_model_name), num_labels=num_labels, from_pt = True)
+        except:
+            model = models[short_name][task](get_full_model_names(short_model_name), num_labels=num_labels, from_tf=True)
     
     if short_name == "auto" and task == "pos":
       tokenizer_class = get_relevant_auto_tokenizer_func(model)
@@ -165,3 +190,13 @@ def make_batches(dataset, batch_size, repetitions, shuffle=True):
     n_batches = len(list(dataset.as_numpy_iterator()))
     dataset = dataset.repeat(repetitions)
     return dataset, n_batches
+
+
+def download_datasets(task, language='no'):
+    for paths in paths_to_relevant_data[task]:
+        if len(paths_to_relevant_data[task]) > 1:
+            sub_folder = paths.split('-')[1]
+            Repo.clone_from(paths, f"data/{task}/{sub_folder}/")
+        else:
+            Repo.clone_from(paths, f"data/{task}/")
+    print('cnoning was done')

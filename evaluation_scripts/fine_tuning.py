@@ -28,82 +28,15 @@ np.random.seed(42)
 python_random.seed(42)
 tf.random.set_seed(42)
 
-def is_trainable(lang, data_path, task):
-    code_dicts = utils.make_lang_code_dicts()
-    name_to_code = code_dicts["name_to_code"]
-    extension = {"pos": "conllu", "sentiment": "csv"}
-
-    for dataset in ["train", "dev"]:
-        if not glob.glob(
-                data_path + name_to_code[lang] + "/*{}.{}".format(dataset, extension[task])):
-            return False
-    return True
-
-
-def get_global_training_state(data_path, short_model_name, experiment, checkpoints_path):
-    code_dicts = utils.make_lang_code_dicts()
-    name_to_code = code_dicts["name_to_code"]
-
-    # Infer task from data path
-    if "sentiment" in data_path:
-        task = "sentiment"
-    else:
-        task = "pos"
-
-    # Get full model names
-    model_name, full_model_name = model_utils.get_full_model_names(short_model_name)
-    # Get all languages that belong to the experiment
-    all_langs = utils.get_langs(experiment)
-
-    # Sort languages according to their status
-    if task == "sentiment" and experiment == "tfm":
-        excluded = ["Turkish", "Japanese", "Russian"]
-    else:
-        excluded = []
-    trained_langs = []
-    cannot_train_langs = []
-    remaining_langs = []
-    for lang in all_langs:
-        if lang in excluded:
-            continue
-        # Check if there are train and dev sets available
-        elif is_trainable(lang, data_path, task):
-            if glob.glob(checkpoints_path + "{}/{}_{}.hdf5".format(name_to_code[lang], model_name,
-                                                                   task)):
-                trained_langs.append(lang)
-            else:
-                remaining_langs.append(lang)
-        else:
-            cannot_train_langs.append(lang)
-
-    # Print status
-    if remaining_langs:
-        training_lang = remaining_langs[0]
-        print("{:<20}".format("Training language:"), training_lang, "\n")
-        training_lang = name_to_code[training_lang]
-        print(columnize(["Already trained:   "] + trained_langs, displaywidth=150))
-        print(columnize(["Not yet trained:   "] + remaining_langs[1:], displaywidth=150))
-        print(columnize(["Cannot train:      "] + cannot_train_langs, displaywidth=150))
-    else:
-        print("No languages remaining", "\n")
-        print(columnize(["Already trained:   "] + trained_langs, displaywidth=150))
-        print(columnize(["Cannot train:      "] + cannot_train_langs, displaywidth=150))
-        training_lang = None
-        if input("Retrain language? ") == "y":
-            while training_lang not in all_langs:
-                training_lang = input("Language to re-train: ")
-            training_lang = name_to_code[training_lang]
-
-    return training_lang
 
 
 class Trainer:
-    def __init__(self, training_lang, data_path, task, model_name, use_class_weights=False):
+    def __init__(self, data_path, task, model_name, use_class_weights=False):
         score_functions = {"pos": self.get_score_pos, "sentiment": self.get_score_sentiment}
 
-        self.training_lang = training_lang
+        # self.training_lang = training_lang
         self.data_path = data_path
-        self.lang_path = data_path + training_lang + "/"
+        # self.lang_path = data_path + training_lang + "/"
         self.task = task
         if self.task == "pos":
             self.eval_info = {}
@@ -134,7 +67,7 @@ class Trainer:
         self.eval_batch_size = eval_batch_size
 
     def setup_checkpoint(self, checkpoints_path):
-        self.checkpoint_dir = checkpoints_path + self.training_lang + "/"
+        self.checkpoint_dir = checkpoints_path +  self.task + "/"
         if not os.path.isdir(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
         if self.task == "sentiment" and self.use_class_weights:
@@ -187,9 +120,12 @@ class Trainer:
         for dataset_name in tqdm(dataset_names):
             # Load plain data and TF dataset
             if self.task == "pos":
-                print(self.lang_path, )
+
+                if self.data_path == True:
+                    model_utils.download_datasets(self.task)
+
                 data, dataset = data_preparation_pos.load_dataset(
-                    self.lang_path, self.tokenizer, self.model, self.max_length,
+                    self.data_path, self.tokenizer, self.model, self.max_length,
                     tagset=self.tagset, dataset_name=dataset_name
                 )
                 if dataset_name != "train":
@@ -201,8 +137,11 @@ class Trainer:
                     balanced = True
                 self.balanced = balanced
                 self.limit = limit
+                if self.data_path == True:
+                    model_utils.download_datasets(self.task)
+
                 data, dataset = data_preparation_sentiment.load_dataset(
-                    self.lang_path, self.tokenizer, self.model, self.max_length,
+                    self.data_path, self.tokenizer, self.model, self.max_length,
                     balanced=balanced, limit=limit, dataset_name=dataset_name
                 )
             if dataset_name == "train":

@@ -87,7 +87,7 @@ def convert_examples_to_tf_dataset(
                 add_special_tokens=True,
                 max_length=max_length,  # truncates if len(s) > max_length
                 return_attention_mask=True,
-                padding="longest",  # pads to the right by default
+                pad_to_max_length=True,  # pads to the right by default
                 truncation=True
             )
 
@@ -147,12 +147,12 @@ def convert_examples_to_tf_dataset(
             ),
         )
 
-def load_dataset(lang_path, tokenizer, model, max_length, balanced=False,
+def load_dataset(data_path, tokenizer, model, max_length, balanced=False,
                  dataset_name="test", limit=None):
     logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
     tqdm.pandas(leave=False)
     # Read data
-    df = pd.read_csv(lang_path + "/{}.csv".format(dataset_name.split("_")[0]), header=None)
+    df = pd.read_csv(data_path + "{}.csv".format(dataset_name.split("_")[0]), header=None)
     df.columns = ["sentiment", "review"]
     df["sentiment"] = pd.to_numeric(df["sentiment"])  # Sometimes label gets read as string
 
