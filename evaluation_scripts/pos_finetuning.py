@@ -12,9 +12,11 @@ import utils.pos_utils as pos_utils
 def test(data_path,
          split="test",
          short_model_name="ltgoslo/norbert",
-         epochs=5, task="pos"):
+         epochs=5,
+         task="pos",
+         sub_task_info='Bokmaal'):
     checkpoints_path = "checkpoints/"
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, sub_task_info)
     # Model parameters
     max_length = 256
     batch_size = 8
@@ -25,7 +27,7 @@ def test(data_path,
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, tagset=tagset,
                         eval_batch_size=64)
-    weights_path = checkpoints_path + task + "/"
+    weights_path = checkpoints_path + task + "/" + sub_task_info + '/'
     weights_filename = short_model_name.replace("/", "_") + "_pos.hdf5"
     print("Using weights from", weights_path + weights_filename)
     trainer.model.load_weights(weights_path + weights_filename)
@@ -48,11 +50,17 @@ def test(data_path,
     return score
 
 
-def train(data_path, short_model_name="ltgoslo/norbert",
-          epochs=10, task="pos", batch_size=8, learning_rate=2e-5):
+def train(data_path,
+          short_model_name="ltgoslo/norbert",
+          epochs=10,
+          task="pos",
+          batch_size=8,
+          learning_rate=2e-5,
+          sub_task_info='Bokmaal'):
+          
     checkpoints_path = "checkpoints/"
 
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, sub_task_info)
     
     #
     # Model parameters

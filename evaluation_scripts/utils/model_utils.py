@@ -4,6 +4,7 @@ import tensorflow as tf
 import sentencepiece
 import re
 import git
+import os
 from git.repo.base import Repo
 import importlib
 from transformers import (TFBertForSequenceClassification, BertTokenizer, AutoTokenizer, AutoModelForTokenClassification, BertTokenizerFast,
@@ -85,6 +86,23 @@ paths_to_relevant_data = {
         'https://github.com/UniversalDependencies/UD_Norwegian-NynorskLIA'
         ],
     'ner': ['https://github.com/ltgoslo/norne']
+}
+
+relevant_data_subinfo = {
+    'sentiment': 
+    {
+        'binary': 'binary',
+        '3class': '3class'
+            },
+    'pos': {
+        'Bokmaal': 'Bokmaal',
+        'Nynorsk': 'Nynorsk',
+        'NynorskLIA': 'NynorskLIA'
+    },
+    'ner': {
+        'Nynorsk': 'ud/nno',
+        'Bokmaal': 'ud/nob'
+    }
 }
 
 def set_tf_memory_growth():
@@ -192,11 +210,33 @@ def make_batches(dataset, batch_size, repetitions, shuffle=True):
     return dataset, n_batches
 
 
-def download_datasets(task, language='no'):
+def get_data_from_default_folder(path):
+    path_to_existing = os.path.exists(path)
+    if path_to_existing == True:
+        return path_to_existing
+    else:
+        return False
+
+
+def download_datasets(task, sub_info='no'):
+    new_path = ''
     for paths in paths_to_relevant_data[task]:
         if len(paths_to_relevant_data[task]) > 1:
             sub_folder = paths.split('-')[1]
-            Repo.clone_from(paths, f"data/{task}/{sub_folder}/")
+            short_d_path = f"data/{task}/"
+            d_path = short_d_path + f"{sub_folder}/"
+            if get_data_from_default_folder(d_path) != False:
+                print('...Relevant datasets have been already downloaded...')
+            else:
+                Repo.clone_from(paths, d_path)
+                print('...Cloning was done...')
+            new_path = short_d_path + relevant_data_subinfo[task][sub_info] + '/'
         else:
-            Repo.clone_from(paths, f"data/{task}/")
-    print('cnoning was done')
+            d_path = f"data/{task}/"
+            if get_data_from_default_folder(d_path) != False:
+                print('...Relevant datasets have been already downloaded...')
+            else:
+                Repo.clone_from(paths, d_path)
+                print('...Cloning was done...')
+            new_path = d_path + relevant_data_subinfo[task][sub_info] + '/'
+    return new_path

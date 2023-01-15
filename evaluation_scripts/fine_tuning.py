@@ -31,7 +31,7 @@ tf.random.set_seed(42)
 
 
 class Trainer:
-    def __init__(self, data_path, task, model_name, use_class_weights=False):
+    def __init__(self, data_path, task, model_name, name_sub_info, use_class_weights=False):
         score_functions = {"pos": self.get_score_pos, "sentiment": self.get_score_sentiment}
 
         # self.training_lang = training_lang
@@ -43,6 +43,7 @@ class Trainer:
         self.metric = score_functions[task]
         self.use_class_weights = use_class_weights
         self.class_weights = None
+        self.sub_info = name_sub_info
 
         # Model names
         self.model_name = model_name
@@ -67,7 +68,7 @@ class Trainer:
         self.eval_batch_size = eval_batch_size
 
     def setup_checkpoint(self, checkpoints_path):
-        self.checkpoint_dir = checkpoints_path +  self.task + "/"
+        self.checkpoint_dir = checkpoints_path +  self.task + "/" + self.sub_info  + "/"
         if not os.path.isdir(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
         if self.task == "sentiment" and self.use_class_weights:
@@ -122,7 +123,7 @@ class Trainer:
             if self.task == "pos":
 
                 if self.data_path == True:
-                    model_utils.download_datasets(self.task)
+                   self.data_path = model_utils.download_datasets(self.task, self.sub_info)
 
                 data, dataset = data_preparation_pos.load_dataset(
                     self.data_path, self.tokenizer, self.model, self.max_length,
@@ -131,14 +132,12 @@ class Trainer:
                 if dataset_name != "train":
                     self.setup_eval(data, dataset_name)
             elif self.task == "sentiment":
-                if self.use_class_weights:
-                    balanced = False
-                else:
-                    balanced = True
+
+                balanced = self.use_class_weights
                 self.balanced = balanced
                 self.limit = limit
                 if self.data_path == True:
-                    model_utils.download_datasets(self.task)
+                   self.data_path = model_utils.download_datasets(self.task, self.sub_info)
 
                 data, dataset = data_preparation_sentiment.load_dataset(
                     self.data_path, self.tokenizer, self.model, self.max_length,

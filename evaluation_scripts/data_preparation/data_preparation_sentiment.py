@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from transformers.data.processors.utils import InputFeatures
+import glob
 
 
 class Example:
@@ -147,30 +148,47 @@ def convert_examples_to_tf_dataset(
             ),
         )
 
-def load_dataset(data_path, tokenizer, model, max_length, balanced=False,
+def load_dataset(data_path, tokenizer, model, max_length, balanced=True,
                  dataset_name="test", limit=None):
     logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
     tqdm.pandas(leave=False)
     # Read data
-    df = pd.read_csv(data_path + "{}.csv".format(dataset_name.split("_")[0]), header=None)
-    df.columns = ["sentiment", "review"]
+    try:
+        df = pd.read_json(glob.glob(data_path + '*{}.json'.format(dataset_name.split("_")[0]))[0])
+    except:
+        df = pd.read_json(glob.glob(data_path + '/*{}.json'.format(dataset_name.split("_")[0]))[0])
+    df.columns = ["id", "review", "sentiment"]
+    df['sentiment'] = pd.Categorical(df['sentiment']).codes
     df["sentiment"] = pd.to_numeric(df["sentiment"])  # Sometimes label gets read as string
+    df = df[["sentiment", "review"]]
 
     # Remove excessively long examples
     lengths = df["review"].progress_apply(lambda x: len(tokenizer.encode(x)))
     df = df[lengths <= max_length].reset_index(drop=True)  # Remove long examples
 
     # Balance classes
-    if dataset_name == "train" and balanced:
-        positive_examples = df["sentiment"].sum()
-        if not limit:
-            # Find which class is the minority and set its size as limit
-            n = min(positive_examples, df.shape[0] - positive_examples)
+    if dataset_name == "train" and balanced == True:
+        if len(df["sentiment"].unique()) == 2:
+            positive_examples = df["sentiment"].sum()
+            if not limit:
+                # Find which class is the minority and set its size as limit
+                n = min(positive_examples, df.shape[0] - positive_examples)
+            else:
+                n = limit
+
+            ones_idx = np.random.choice(np.where(df["sentiment"])[0], size=n)
+            zeros_idx = np.random.choice(np.where(df["sentiment"] == 0)[0], size=n)
+            df = df.loc[list(ones_idx) + list(zeros_idx)].reset_index(drop=True)
         else:
-            n = limit
-        ones_idx = np.random.choice(np.where(df["sentiment"])[0], size=n)
-        zeros_idx = np.random.choice(np.where(df["sentiment"] == 0)[0], size=n)
-        df = df.loc[list(ones_idx) + list(zeros_idx)].reset_index(drop=True)
+            if not limit:
+                min_class = df["sentiment"].min()
+                n = len(df[df["sentiment"] == min_class])
+            else:
+                n = limit
+            ones_idx = np.random.choice(np.where(df["sentiment"] == 1)[0], size=n)
+            zeros_idx = np.random.choice(np.where(df["sentiment"] == 0)[0], size=n)
+            twos_idx = np.random.choice(np.where(df["sentiment"] == 2)[0], size=n)
+            df = df.loc[list(ones_idx) + list(zeros_idx) + list(twos_idx)].reset_index(drop=True)
     elif not balanced and limit:
         raise Exception("Must set 'balanced' to True to choose a manual limit.")
 

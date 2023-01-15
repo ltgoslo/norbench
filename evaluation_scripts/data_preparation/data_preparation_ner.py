@@ -13,8 +13,10 @@ tagset = ner_utils.get_ner_tags()
 
 def load_dataset_ner(data_path, dataset_name="test"):
     """Loads conllu file, returns a list of dictionaries (one for each sentence) and a TF dataset"""
-
-    data = read_conll(glob.glob(data_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0], label_nr=9)
+    try:
+        data = read_conll(glob.glob(data_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0], label_nr=9)
+    except:
+        data = read_conll(glob.glob(data_path + "*{}.conllu".format(dataset_name.split("_")[0]))[0], label_nr=9)
     examples = [{"id": sent_id, "tokens": tokens, "ner_tags": [tag.split("|")[-1].split('=')[1] for tag in tags]} for sent_id, tokens, tags in
                 zip(data[0], data[1], data[2])]
 

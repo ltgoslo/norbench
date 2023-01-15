@@ -156,13 +156,15 @@ def initialization_trainer(model, tokenizer, tokenized_data, data_collator, outp
     return trainer
 
 
-def train_use_eval(data_path, model_name, run_name, task, epochs, use_seqeval_evaluation, tagset=tagset):
+def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, tagset=tagset):
     
     checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
 
     # Load the dataset
     if data_path == True:
-        download_datasets(task)
+        data_path = download_datasets(task, sub_info)
+        checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
+        
     model, tokenizer = model_init(model_name, task, tagset)
     tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path)
 
@@ -196,10 +198,13 @@ def train_use_eval(data_path, model_name, run_name, task, epochs, use_seqeval_ev
             writer.write(f"{key} = {value}\n")
 
 
-def test(data_path, model_name, task, run_name, trainer=None, tagset=tagset):
+def test(data_path, sub_info, model_name, task, run_name, trainer=None, tagset=tagset):
     """# Run Predictions on the Test Dataset"""
     
     if trainer == None:
+        if data_path == True:
+            data_path = download_datasets(task, sub_info)
+            checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
         _, tokenizer = model_init(model_name, task, tagset)
         
         checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
