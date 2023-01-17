@@ -130,7 +130,10 @@ def load_dataset(data_path, tokenizer, model, max_length, tagset, dataset_name="
     """Loads conllu file, returns a list of dictionaries (one for each sentence) and a TF dataset"""
     logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
     
-    data = read_conll(glob.glob(data_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0])
+    try:
+        data = read_conll(glob.glob(data_path + "*{}.conllu".format(dataset_name.split("_")[0]))[0]) 
+    except:
+        data = read_conll(glob.glob(data_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0])
 
     examples = [{"id": sent_id, "tokens": tokens, "tags": tags} for sent_id, tokens, tags in
                 zip(data[0], data[1], data[2])]

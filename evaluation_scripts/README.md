@@ -272,19 +272,22 @@ The current script provides the ability to run all benchmark tasks (that were me
 #### <a name="ALL_PARAMS"></a>  Parameters
 
 * `--task` - the name of the task: pos/ner/sentiment/all should be used. If nothing was entered by user, all tasks will be run
-* `--path_to_dataset` - path to the folder with data for current task. If 'ner' was chosen as a task, folder with the corresponding dataset should be entered. If one wants to run all benchmark tasks, there are other arguments that are more suitable for this (mentioned below)
 
-* `--download_cur_data` - Current argument provides user to download the original datasets from github: True if downloading is needed (False as default)
+* `--task_specific_info` - Name of a sub-task. For origianl datasets name of language (Bokmaal \ Nynorsk \ NynorskLIA (for pos-tagging)) or type of classification (binary / 3class) could be used.
 
-* `--path_to_dataset_pos` - path to the folder with data for pos task if 'all' in task was used
+* `--path_to_dataset` - path to the folder with data for current task. If 'ner' was chosen as a task, folder with the corresponding dataset should be entered. If one wants to run all benchmark tasks, there are other arguments that are more suitable for this (mentioned below). If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
-* `--path_to_dataset_ner` - path to the folder with data for ner task if 'all' in task was used
+* `--download_cur_data` - Current argument provides user to download the original datasets from github and use original dataset if it has been already downloaded: True if downloading is needed (False as default).
 
-* `--path_to_dataset_sent` - path to the folder with data for binary sentiment task if 'all' in task was used
+* `--path_to_dataset_pos` - path to the folder with data for pos task if 'all' in task was used. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
-* `--model_name` - name of the model / 'all' to run all models that were tested for Norbench. Model name will be used to save checkpoints for the current model. 
+* `--path_to_dataset_ner` - path to the folder with data for ner task if 'all' in task was used. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
-* `--path_to_model` - path to model (can be added either as path or as full model name from Higgingface library). 
+* `--path_to_dataset_sent` - path to the folder with data for binary sentiment task if 'all' in task was used. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
+
+* `--model_name` - Name of the model that will be used as an identifier for checkpoints.
+
+* `--path_to_model` - Path to model / 'all' to run all models that were tested for Norbench (can be added either as path or as full model name from Higgingface library). 
 
   Path to model can be entered in severeal ways:
   + Firstly: in model_names (`model_utils.py`), the user can add a convenient abbreviation for the model name (if a specific model is not yet in the list): `mbert`
@@ -293,9 +296,60 @@ The current script provides the ability to run all benchmark tasks (that were me
 
 * `--do_train` - True if model will be trained from scratch. Train, evaluation and test will be run.
 
-* `--use_class_weights_for_sent` -  a parameter that determines whether classes will be balanced when the model is running 
-(classes are balanced when a `FALSE` value is passed to the parameter)
+* `--class_balanced_for_sent` -  a parameter that determines whether classes will be balanced when the model is running 
+(classes are balanced when a `True` value is passed to the parameter)
 
 * `--use_seqeval_evaluation_for_ner` -  boolean variable indicating whether to use the seqeval metric during validation
 
 * `--epochs` -  number of training epochs (`10` by default)
+
+#### <a name="Overall_Run"></a> Running scripts. Examples
+
+1. Run all tasks for a current model
+
+    With the script provided below, it is possible to run all tasks with the original datasets (that will be downloaded)
+
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model scandibert --task all  --download_cur_data True
+    ```
+
+    if datasets were downloaded,it is possible not the mention `--download_cur_data` explicitly (but if the following argument will be mentioned, the original data will be used)
+
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model scandibert --task all
+    ```
+
+    to run all tasks with the datasets from the local folders:
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model norbert2 --task sentiment --path_to_dataset_pos {PATH_TO_FOLDER_POS} --path_to_dataset_ner {PATH_TO_FOLDER_NER} --path_to_dataset_sent {PATH_TO_FOLDER_SENTIMENT}
+    ```
+
+2. Run all models for a current task
+
+    With the script provided below, it is possible to run sentiment task with the original datasets (that will be downloaded) for all NorBench models
+
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --task sentiment --path_to_model all
+    ```
+
+3. Run a current model for a current task
+
+    With the script provided below, it is possible to run sentiment task with the original datasets (that will be downloaded) for norbert2 model
+
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model norbert2 --task sentiment
+    ```
+
+    to run sentiment task with the dataset from the local folder:
+    
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model norbert2 --task sentiment --path_to_dataset {PATH_TO_FOLDER}
+    ```
+
+4. Run all tasks with all the models
+
+    With the script provided below, it is possible to run all tasks with the original datasets (that will be downloaded) for all model
+
+    ```
+    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model all --task all
+    ```

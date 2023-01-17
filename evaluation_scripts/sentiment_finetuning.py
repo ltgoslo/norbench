@@ -11,20 +11,24 @@ import utils.pos_utils as pos_utils
 
 def test(data_path,
          split="test",
-         short_model_name="ltgoslo/norbert", task="sentiment"):
+         short_model_name="ltgoslo/norbert", 
+         task="sentiment",
+         sub_task_info='binary'):
+    
     checkpoints_path = "checkpoints/"
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name)
+    
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, sub_task_info)
     # Model parameters
     max_length = 256
     eval_batch_size = 8
     batch_size = 256
     learning_rate = 2e-5
     epochs = 30
-    num_labels = 2
+    num_labels = 2 if sub_task_info=='binary' else 3
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels,
                         eval_batch_size=eval_batch_size)
-    weights_path = checkpoints_path + task
+    weights_path = checkpoints_path + task + '/' + sub_task_info + '/'
     weights_filename = short_model_name.replace("/", "_") + "_sentiment.hdf5"
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
@@ -47,18 +51,24 @@ def test(data_path,
 def train(data_path,
           short_model_name="ltgoslo/norbert",
           epochs=10,
-          use_class_weights=False, task="sentiment", batch_size=8, learning_rate=2e-5):
+          use_class_weights=True,
+          task="sentiment",
+          sub_task_info='binary',
+          batch_size=8,
+          learning_rate=2e-5,):
 
     checkpoints_path = "checkpoints/"
 
     trainer = fine_tuning.Trainer(data_path, task, short_model_name,
-                                  use_class_weights)
+                                  sub_task_info, use_class_weights)
 
     # Model parameters
     max_length = 256
     
+    num_labels = 2 if sub_task_info=='binary' else 3
+
     # Model creation
-    trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels=2,
+    trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels=num_labels,
                         eval_batch_size=32)
 
     # Checkpoint for best model weights
