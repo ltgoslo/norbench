@@ -8,18 +8,15 @@ At the moment, we have the evaluation scripts for [4 NLP tasks](http://wiki.nlpl
 * In the current documentation information about 3 of 4 tasks is provided in details:
   + [Part-Of-Speech tagging task](#POS)
     - [Parameters](#POS_PARAMS)
-    - [How to run the training script](#POS_SCRIPT)
     - [Evaluation](#POS_EVAL)
     - [Available Models](#POS_MODELS)
   + [Fine-grained Sentiment Analysis task](#FINEGRAINED) -- detailed information about the current task is provided in the repository by link in the section
   + [Binary Sentiment Analysis task](#BINARYSENT)
     - [Parameters](#BINARYSENT_PARAMS)
-    - [How to run the training script](#BINARYSENT_SCRIPT)
     - [Evaluation](#BINARYSENT_EVAL)
     - [Available Models](#BINARYSENT_MODELS)
   + [Named Entity Recognition task](#NER)
     - [Parameters](#NER_PARAMS)
-    - [How to run the training script](#NER_SCRIPT)
     - [Evaluation](#NER_EVAL)
     - [Available Models](#NER_MODELS)
 * [Run tasks](#ALL_TASKS) 
@@ -81,21 +78,6 @@ The input of the model is:
 * `--epochs` - number of training epochs (`10` by default)
 
 
-#### <a name="POS_SCRIPT"></a> Running script
-
-
-Scripts could be run on the [SAGA](https://documentation.sigma2.no/index.html) cluster
-
-In order to run the script on Saga, it is necessary to put arguments for [parameters](#POS_PARAMS) in the form indicated below.
-
-
-Sample `.slurm` file could be found in [this](https://github.com/ltgoslo/norbench/evaluation_scripts/evaluate_pos_tagging.slurm) directory
-
-```
-python3 pos_finetuning.py --short_model_name ${MODEL} --training_language ${LANG} --model_name ${IDENTIFIER} --epochs 10
-
-```
-
 #### <a name="POS_EVAL"></a>  Evaluation
 
 Accuracy is used to evaluate this task. 
@@ -155,18 +137,6 @@ The input of the model is:
 * `--epochs` - number of trainable epochs (`10` as default)
 
 
-#### <a name="BINARYSENT_SCRIPT"></a> Running script
-
-Scripts could be run on the [SAGA](https://documentation.sigma2.no/index.html) HPC cluster
-
-In order to run the script on Saga, it is necessary to put arguments for [parameters](#BINARYSENT_PARAMS) in the form indicated below.
-
-Sample `.slurm` file could be found in [this](https://github.com/ltgoslo/norbench/evaluation_scripts/evaluate_binary_sentiment.slurm) directory
-
-```
-python3 sentiment_finetuning.py --short_model_name ${MODEL} --training_language ${LANG} --model_name ${IDENTIFIER} --epochs 10 --use_class_weights $WEIGHTED
-```
-
 #### <a name="BINARYSENT_EVAL"></a>  Evaluation
 
 F1 score is used to evaluate this task. 
@@ -217,18 +187,6 @@ The input of the model is:
 * `--model_type` - optional argument (type of the model that one wants to run (`bert`, `roberta`)), 
 however, if the user type does not know the model type, the decision will be made automatically, so one can skip this argument
 
-
-#### <a name="NER_SCRIPT"></a> Running script
-
-Scripts could be run on the [SAGA](https://documentation.sigma2.no/index.html) HPC cluster
-
-In order to run the script on Saga, it is necessary to put arguments for [parameters](#NER_PARAMS) in the form indicated below.
-
-Sample `.slurm` file could be found in [this](https://github.com/ltgoslo/norbench/evaluation_scripts/evaluate_ner.slurm) directory
-
-```
-python3 ner_finetuning.py --model_name ${MODEL}  --training_language ${LANG} --run_model_name ${IDENTIFIER} --epochs 20
-```
 
 #### <a name="NER_EVAL"></a>  Evaluation
 

@@ -32,8 +32,7 @@ def test(data_path,
     weights_filename = short_model_name.replace("/", "_") + "_sentiment.hdf5"
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
-    test_lang_path = data_path + task
-    test_data, test_dataset = data_preparation_sentiment.load_dataset(test_lang_path,
+    test_data, test_dataset = data_preparation_sentiment.load_dataset(data_path,
                                                                       trainer.tokenizer, trainer.model, max_length,
                                                                       short_model_name,
                                                                       dataset_name=split)
@@ -142,45 +141,3 @@ def get_score_pos(preds, dataset_name, eval_info):
         eval_info[dataset_name]["subword_locs"], filtered_preds, filtered_logits
     )
     return (np.array(eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", default="norbert")
-    parser.add_argument("--path_to_dataset")
-    parser.add_argument("--short_model_name", default="ltgoslo/norbert")
-    parser.add_argument("--use_class_weights", action="store_true")
-    parser.add_argument("--task", default="sentiment")
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch_size", default=8)
-    parser.add_argument("--learning_rate", default=2e-5)
-
-    args = parser.parse_args()
-
-
-    data_path = args.path_to_dataset
-    run_name = args.model_name
-    model_identifier = args.short_model_name
-    current_task = args.task
-
-    # Train models
-
-    training_object = train(data_path, short_model_name=model_identifier, epochs=args.epochs, task=current_task, batch_size=args.batch_size, learning_rate=args.learning_rate)
-
-    dev_score = test(data_path,
-                     "dev",
-                     short_model_name=model_identifier, task=current_task)
-
-    test_score = test(data_path,
-                      "test",
-                      short_model_name=model_identifier, task=current_task)
-
-    table = pd.DataFrame({
-                          "Dev F1": [dev_score],
-                          "Test F1": [test_score]
-                          })
-
-    print(table)
-    print(table.style.hide(axis='index').to_latex())
-    table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
-    print(f"Scores saved to results/_{run_name}_{current_task}.tsv")

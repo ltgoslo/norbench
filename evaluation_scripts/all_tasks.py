@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--path_to_dataset_pos",  help="If 'all' in task was used: path to the folder with data for pos task", default="")
     parser.add_argument("--path_to_dataset_ner", help="If 'all' in task was used: path to the folder with data for ner task", default="")
     parser.add_argument("--path_to_dataset_sent", help="If 'all' in task was used: path to the folder with data for binary sentiment task", default="")
-    parser.add_argument("--model_name",  help="name of the model that will be used as an identifier for checkpoints", default="")
+    parser.add_argument("--model_name",  help="name of the model that will be used as an identifier for checkpoints", default="norbench_model")
     parser.add_argument("--path_to_model", help="path to model / 'all' to run all models that were tested for Norbench", default="ltgoslo/norbert")
     parser.add_argument("--download_cur_data", help="True if downloading of repositories with relevant data is needed",  type=bool, default=False)
     parser.add_argument("--do_train", help="True if model will be trained from scratch", type=bool, default=True)
