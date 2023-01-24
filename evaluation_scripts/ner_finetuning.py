@@ -164,7 +164,7 @@ def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_
     if data_path == True:
         data_path = download_datasets(task, sub_info)
         checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
-        
+
     model, tokenizer = model_init(model_name, task, tagset)
     tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path)
 
@@ -247,38 +247,3 @@ def test(data_path, sub_info, model_name, task, run_name, trainer=None, tagset=t
     test_results = evaluate_ner.evaluation(path_to_predictions, path_to_test)
     return test_results
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", default="ltgoslo/norbert")
-    parser.add_argument("--run_model_name", default="norne_nob")
-    parser.add_argument("--path_to_dataset")
-    parser.add_argument("--task", default="ner")
-    parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--use_seqeval_evaluation", type=bool, default=False)
-    args = parser.parse_args()
-
-
-    data_path = args.path_to_dataset
-    model_name = args.model_name
-    run_name = args.run_model_name
-    current_task = args.task
-    epochs = args.epochs
-    use_seqeval_evaluation = args.use_seqeval_evaluation
-
-    trainer = train_use_eval(data_path, model_name, run_name, current_task, epochs, use_seqeval_evaluation)
-
-
-    """# Run Predictions on the Test Dataset"""
-
-    print("**Predict**")
-    test_results = test(data_path, model_name, current_task,  run_name, trainer)
-
-    table = pd.DataFrame({
-                          "Test F1": [test_results],
-                          })
-
-    print(table)
-    print(table.style.hide(axis='index').to_latex())
-    table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
-    print(f"Scores saved to results/_{run_name}_{current_task}.tsv")

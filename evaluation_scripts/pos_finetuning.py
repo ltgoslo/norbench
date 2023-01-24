@@ -34,8 +34,7 @@ def test(data_path,
     # Checkpoint for best model weights
     # trainer.setup_checkpoint(checkpoints_path)
     trainer.prepare_data()
-    test_lang_path = data_path + task
-    test_data, test_dataset = data_preparation_pos.load_dataset(test_lang_path, trainer.tokenizer, trainer.model,
+    test_data, test_dataset = data_preparation_pos.load_dataset(data_path, trainer.tokenizer, trainer.model,
                                                                 max_length, trainer.tagset,
                                                                 dataset_name=split)
     trainer.setup_eval(test_data, split)
@@ -150,47 +149,3 @@ def get_score_pos(preds, dataset_name, eval_info):
     )
     return (np.array(eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", default="norbert")
-    parser.add_argument("--path_to_dataset")
-    parser.add_argument("--short_model_name", default="ltgoslo/norbert")
-    parser.add_argument("--training_language", default="nob")
-    parser.add_argument("--task", default="pos")
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch_size", default=8)
-    parser.add_argument("--learning_rate", default=2e-5)
-
-    args = parser.parse_args()
-
-    data_path = args.path_to_dataset
-    run_name = args.model_name
-    model_identifier = args.short_model_name
-    current_task = args.task
-
-    # Train models
-    training_object = train(data_path, short_model_name=model_identifier, task=current_task, epochs=args.epochs,
-    batch_size=args.batch_size, learning_rate=args.learing_rate)
-
-    print('TRAINING')
-    dev_score = test(data_path,
-                     "dev",
-                     short_model_name=model_identifier, task=current_task)
-
-    print('TESTING')
-    test_score = test(data_path,
-                      "test",
-                      short_model_name=model_identifier, task=current_task)
-
-    print('DEV')
-
-    table = pd.DataFrame({
-                          "Dev Accuracy": [dev_score],
-                          "Test Accuracy": [test_score]
-                          })
-
-    print(table)
-    print(table.style.hide(axis='index').to_latex())
-    table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
-    print(f"Scores saved to results/_{run_name}_{current_task}.tsv")
