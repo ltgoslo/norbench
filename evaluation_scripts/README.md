@@ -223,7 +223,7 @@ The list below describes the models for which it was possible to successfully ob
 - Electra-Small-Nordic: `jonfd/electra-small-nordic` --  the repository with the model files has been downloaded to the directory
 
 ### <a name="ALL_TASKS"></a> Run tasks
-To run benchmark tasks `all_tasks.py` should be used.
+To run benchmark tasks `norbench_run.py` should be used.
 
 The current script provides the ability to run all benchmark tasks (that were mentioned above in details) for one model or all models for one task.
 
@@ -268,18 +268,18 @@ The current script provides the ability to run all benchmark tasks (that were me
     With the script provided below, it is possible to run all tasks with the original datasets (that will be downloaded)
 
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model scandibert --task all  --download_cur_data True
+    python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model scandibert --task all  --download_cur_data True
     ```
 
     if datasets were downloaded,it is possible not the mention `--download_cur_data` explicitly (but if the following argument will be mentioned, the original data will be used)
 
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model scandibert --task all
+    python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model scandibert --task all
     ```
 
     to run all tasks with the datasets from the local folders:
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model norbert2 --task sentiment --path_to_dataset_pos {PATH_TO_FOLDER_POS} --path_to_dataset_ner {PATH_TO_FOLDER_NER} --path_to_dataset_sent {PATH_TO_FOLDER_SENTIMENT}
+    python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model norbert2 --task sentiment --path_to_dataset_pos {PATH_TO_FOLDER_POS} --path_to_dataset_ner {PATH_TO_FOLDER_NER} --path_to_dataset_sent {PATH_TO_FOLDER_SENTIMENT}
     ```
 
 2. Run all models for a current task
@@ -287,7 +287,7 @@ The current script provides the ability to run all benchmark tasks (that were me
     With the script provided below, it is possible to run sentiment task with the original datasets (that will be downloaded) for all NorBench models
 
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --task sentiment --path_to_model all
+    python3 ./norbench/evaluation_scripts/norbench_run.py --task sentiment --path_to_model all
     ```
 
 3. Run a current model for a current task
@@ -295,13 +295,13 @@ The current script provides the ability to run all benchmark tasks (that were me
     With the script provided below, it is possible to run sentiment task with the original datasets (that will be downloaded) for norbert2 model
 
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model norbert2 --task sentiment
+    python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model norbert2 --task sentiment
     ```
 
     to run sentiment task with the dataset from the local folder:
     
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model norbert2 --task sentiment --path_to_dataset {PATH_TO_FOLDER}
+    python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model norbert2 --task sentiment --path_to_dataset {PATH_TO_FOLDER}
     ```
 
 4. Run all tasks with all the models
@@ -309,5 +309,5 @@ The current script provides the ability to run all benchmark tasks (that were me
     With the script provided below, it is possible to run all tasks with the original datasets (that will be downloaded) for all model
 
     ```
-    python3 ./norbench/evaluation_scripts/all_tasks.py --path_to_model all --task all
+    python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model all --task all
     ```
