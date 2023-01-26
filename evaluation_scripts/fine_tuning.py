@@ -31,7 +31,7 @@ tf.random.set_seed(42)
 
 
 class Trainer:
-    def __init__(self, data_path, task, model_name, name_sub_info, use_class_weights=False):
+    def __init__(self, data_path, task, model_name, run_name, name_sub_info, use_class_weights=False):
         score_functions = {"pos": self.get_score_pos, "sentiment": self.get_score_sentiment}
 
         # self.training_lang = training_lang
@@ -44,11 +44,17 @@ class Trainer:
         self.use_class_weights = use_class_weights
         self.class_weights = None
         self.sub_info = name_sub_info
+        if self.data_path == True:
+                   self.data_path = model_utils.download_datasets(self.task, self.sub_info)
 
         # Model names
         self.model_name = model_name
 
-        self.save_model_name = model_name.replace("/", "_")
+        if run_name == '':
+            self.save_model_name = model_name.replace("/", "_")
+        else:
+            self.save_model_name = run_name
+
 
     def build_model(self, max_length, train_batch_size, learning_rate, epochs, num_labels,
                     tagset=None, eval_batch_size=32):
@@ -71,9 +77,9 @@ class Trainer:
         self.checkpoint_dir = checkpoints_path +  self.task + "/" + self.sub_info  + "/"
         if not os.path.isdir(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
-        if self.task == "sentiment" and self.use_class_weights:
+        if self.task == "sentiment" and self.use_class_weights == False:
             suffix = "_classweights"
-        elif self.task == "sentiment" and not self.use_class_weights:
+        elif self.task == "sentiment" and self.use_class_weights == True:
             suffix = "_balancedclasses"
         else:
             suffix = ""
@@ -122,8 +128,8 @@ class Trainer:
             # Load plain data and TF dataset
             if self.task == "pos":
 
-                if self.data_path == True:
-                   self.data_path = model_utils.download_datasets(self.task, self.sub_info)
+                # if self.data_path == True:
+                #    self.data_path = model_utils.download_datasets(self.task, self.sub_info)
 
                 data, dataset = data_preparation_pos.load_dataset(
                     self.data_path, self.tokenizer, self.model, self.max_length,
@@ -136,8 +142,8 @@ class Trainer:
                 balanced = self.use_class_weights
                 self.balanced = balanced
                 self.limit = limit
-                if self.data_path == True:
-                   self.data_path = model_utils.download_datasets(self.task, self.sub_info)
+                # if self.data_path == True:
+                #    self.data_path = model_utils.download_datasets(self.task, self.sub_info)
 
                 data, dataset = data_preparation_sentiment.load_dataset(
                     self.data_path, self.tokenizer, self.model, self.max_length,

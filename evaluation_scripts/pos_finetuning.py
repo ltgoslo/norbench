@@ -12,11 +12,12 @@ import utils.pos_utils as pos_utils
 def test(data_path,
          split="test",
          short_model_name="ltgoslo/norbert",
+         run_name='',
          epochs=5,
          task="pos",
          sub_task_info='Bokmaal'):
     checkpoints_path = "checkpoints/"
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name, sub_task_info)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, run_name, sub_task_info)
     # Model parameters
     max_length = 256
     batch_size = 8
@@ -28,12 +29,19 @@ def test(data_path,
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, tagset=tagset,
                         eval_batch_size=64)
     weights_path = checkpoints_path + task + "/" + sub_task_info + '/'
-    weights_filename = short_model_name.replace("/", "_") + "_pos.hdf5"
+    if run_name == '' :
+        weights_filename = short_model_name.replace("/", "_") + "_pos.hdf5"
+    else:
+        weights_filename = run_name + "_pos.hdf5"
+
     print("Using weights from", weights_path + weights_filename)
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
     # trainer.setup_checkpoint(checkpoints_path)
     trainer.prepare_data()
+    if data_path == True:
+        data_path = model_utils.download_datasets(task, sub_task_info)
+
     test_data, test_dataset = data_preparation_pos.load_dataset(data_path, trainer.tokenizer, trainer.model,
                                                                 max_length, trainer.tagset,
                                                                 dataset_name=split)
@@ -51,6 +59,7 @@ def test(data_path,
 
 def train(data_path,
           short_model_name="ltgoslo/norbert",
+          run_name='',
           epochs=10,
           task="pos",
           batch_size=8,
@@ -59,7 +68,7 @@ def train(data_path,
           
     checkpoints_path = "checkpoints/"
 
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name, sub_task_info)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, run_name, sub_task_info)
     
     #
     # Model parameters

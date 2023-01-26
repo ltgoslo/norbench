@@ -156,19 +156,19 @@ def initialization_trainer(model, tokenizer, tokenized_data, data_collator, outp
     return trainer
 
 
-def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, tagset=tagset):
+def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, max_length=512, tagset=tagset):
     
-    checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
+    checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
 
     # Load the dataset
     if data_path == True:
         data_path = download_datasets(task, sub_info)
-        checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
+        # checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
 
     model, tokenizer = model_init(model_name, task, tagset)
-    tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path)
+    tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path, max_length=max_length)
 
-    trainer = initialization_trainer(model, tokenizer, tokenized_data, data_collator, checkpoints_path, epochs, use_seqeval_evaluation)
+    trainer = initialization_trainer(model, tokenizer, tokenized_data, data_collator, checkpoints_path, epochs, use_seqeval_evaluation, max_length)
     train_result = trainer.train()
     trainer.save_model()  # Saves the tokenizer too for easy upload
 
@@ -196,25 +196,26 @@ def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_
         for key, value in results.items():
             print(f"{key} = {value}")
             writer.write(f"{key} = {value}\n")
+    return trainer, tokenized_data
 
 
-def test(data_path, sub_info, model_name, task, run_name, trainer=None, tagset=tagset):
+def test(data_path, sub_info, model_name, task, run_name, trainer=None, tokenized_data=None, max_length=512, tagset=tagset):
     """# Run Predictions on the Test Dataset"""
     
+    if data_path == True:
+        data_path = download_datasets(task, sub_info)
+        
     if trainer == None:
-        if data_path == True:
-            data_path = download_datasets(task, sub_info)
-            checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
         _, tokenizer = model_init(model_name, task, tagset)
         
-        checkpoints_path = "checkpoints/" + task + '/' + run_name + '/'
+        checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
 
         path_to_model = glob.glob(checkpoints_path + 'checkpoint-*/')[0]
         model = AutoModelForTokenClassification.from_pretrained(path_to_model)
 
         args, _ = init_args(checkpoints_path)
 
-        tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path, full_pipeline=False)
+        tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path, max_length, full_pipeline=False)
         
         trainer = Trainer(
                 model=model,
@@ -223,7 +224,6 @@ def test(data_path, sub_info, model_name, task, run_name, trainer=None, tagset=t
                 data_collator=data_collator,
             )
     
-      
     print("**Predict**")
     real_predictions = get_predictions(trainer, tokenized_data)
 
@@ -233,6 +233,11 @@ def test(data_path, sub_info, model_name, task, run_name, trainer=None, tagset=t
     path_to_predictions = data_path+"predicted_{}.conllu".format(model_name.replace('/', '_'))
 
     test_conll = parse(open(path_to_test, "r").read())
+
+
+    if len(test_conll) != len(real_predictions):
+        raise ValueError("Check if there is enough spaces in the end of .conllu file")
+
 
     for nr, sentence in enumerate(test_conll):
         for tk_num, token in enumerate(sentence):
