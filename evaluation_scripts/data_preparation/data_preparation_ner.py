@@ -23,7 +23,7 @@ def load_dataset_ner(data_path, dataset_name="test"):
     return examples
 
 
-def collecting_data(tokenizer, path, full_pipeline=True):
+def collecting_data(tokenizer, path, max_length=512, full_pipeline=True):
     "collecting data from the files"
 
     id2label = {t: i for i, t in enumerate(tagset)}
@@ -45,7 +45,7 @@ def collecting_data(tokenizer, path, full_pipeline=True):
         te_ids, te_tokens, te_tags = ner_utils.organized_subsets(test_data, id2label)
         data = datasets.DatasetDict({'test': Dataset.from_dict({'id': te_ids,'tokens': te_tokens, 'tags': te_tags})})
 
-    data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+    data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer, padding='longest', max_length=max_length)
     tokenized_data = data.map(ner_utils.tokenize_and_align_labels, fn_kwargs={'tokenizer': tokenizer}, batched=True)
 
     return tokenized_data, data_collator

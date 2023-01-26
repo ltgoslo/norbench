@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import pandas as pd
+import os
 import data_preparation.data_preparation_sentiment as data_preparation_sentiment
 import sentiment_finetuning
 import pos_finetuning
@@ -40,21 +41,22 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
 
     if do_train == True:
         if current_task == 'ner':
-            trainer = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner)
-            test_results =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer)
+            trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner)
+            test_results =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data)
             table = pd.DataFrame({
                             "Test F1": [test_results],
                             })
 
         else:
+            
             if current_task == 'sentiment':
-                training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, epochs=epochs, use_class_weights=use_class_weights_for_sent, task=current_task)
+                training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, use_class_weights=use_class_weights_for_sent, task=current_task)
             else:
-                training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, epochs=epochs, task=current_task)
+                training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task)
 
-            dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, task=current_task)
+            dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task)
 
-            test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, task=current_task)
+            test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task)
 
             table = pd.DataFrame({
                                 "Dev F1": [dev_score],
@@ -63,6 +65,10 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
 
         print(table)
         print(table.style.hide(axis='index').to_latex())
+
+        if not os.path.exists("results"):
+            os.makedirs("results")
+            
         table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
         print(f"Scores saved to results/_{run_name}_{current_task}.tsv")
 

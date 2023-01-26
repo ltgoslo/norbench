@@ -12,12 +12,13 @@ import utils.pos_utils as pos_utils
 def test(data_path,
          split="test",
          short_model_name="ltgoslo/norbert", 
+         run_name='',
          task="sentiment",
          sub_task_info='binary'):
     
     checkpoints_path = "checkpoints/"
     
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name, sub_task_info)
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, run_name, sub_task_info)
     # Model parameters
     max_length = 256
     eval_batch_size = 8
@@ -29,9 +30,15 @@ def test(data_path,
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels,
                         eval_batch_size=eval_batch_size)
     weights_path = checkpoints_path + task + '/' + sub_task_info + '/'
-    weights_filename = short_model_name.replace("/", "_") + "_sentiment.hdf5"
+    if run_name == '':
+        weights_filename = short_model_name.replace("/", "_") + "_sentiment.hdf5"
+    else:
+        weights_filename = run_name + "_sentiment.hdf5"
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
+    if data_path == True:
+        data_path = model_utils.download_datasets(task, sub_task_info)
+        
     test_data, test_dataset = data_preparation_sentiment.load_dataset(data_path,
                                                                       trainer.tokenizer, trainer.model, max_length,
                                                                       short_model_name,
@@ -49,6 +56,7 @@ def test(data_path,
 
 def train(data_path,
           short_model_name="ltgoslo/norbert",
+          run_name='',
           epochs=10,
           use_class_weights=True,
           task="sentiment",
@@ -58,7 +66,7 @@ def train(data_path,
 
     checkpoints_path = "checkpoints/"
 
-    trainer = fine_tuning.Trainer(data_path, task, short_model_name,
+    trainer = fine_tuning.Trainer(data_path, task, short_model_name, run_name,
                                   sub_task_info, use_class_weights)
 
     # Model parameters
