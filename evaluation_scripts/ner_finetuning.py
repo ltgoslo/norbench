@@ -84,8 +84,8 @@ def model_init(model_name, task, tagset):
 
 def init_args(output_dir, epochs=20):
     num_train_epochs = epochs
-    per_device_train_batch_size = 16
-    per_device_eval_batch_size = 32
+    per_device_train_batch_size = 2
+    per_device_eval_batch_size = 8
     learning_rate = 3e-05
     weight_decay = 0.0
     adam_beta1 = 0.9

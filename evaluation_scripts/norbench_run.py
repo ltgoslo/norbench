@@ -11,6 +11,7 @@ import utils.model_utils as model_utils
 import utils.pos_utils as pos_utils
 from distutils.util import strtobool
 
+os.environ["WANDB_DISABLED"] = "true"
 
 tasks = {
     'sentiment': {
@@ -129,9 +130,10 @@ if __name__ == "__main__":
     
     if current_task == 'all':
 
-        pathes_to_data = {'pos': args.path_to_dataset_pos,
-                          'ner': args.path_to_dataset_ner,
-                          'sentiment': args.path_to_dataset_sent}
+        pathes_to_data = {'sentiment': args.path_to_dataset_sent,
+                         'ner': args.path_to_dataset_ner,
+                         'pos': args.path_to_dataset_pos,
+                         }
 
         for tsk, path_tsk in pathes_to_data.items():
             if checking_data(path_tsk, tsk) == False :
