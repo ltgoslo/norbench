@@ -15,8 +15,7 @@ os.environ["WANDB_DISABLED"] = "true"
 
 tasks = {
     'sentiment': {
-        'train': sentiment_finetuning.train,
-        'eval': sentiment_finetuning.test,
+        'train_evaluate': sentiment_finetuning.training_evaluating,
     },
     'pos': {
         'train': pos_finetuning.train,
@@ -49,15 +48,16 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
                             })
 
         else:
-            
+            # add iterations!!!!
             if current_task == 'sentiment':
-                training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, use_class_weights=use_class_weights_for_sent, task=current_task)
+                #dev_score, test_score = sentiment_finetuning.training_evaluating(task_specific_info, path_to_model, custom_wrapper, lr, max_length, batch_size, epochs)
+                dev_score, test_score = tasks[current_task]['train_evaluate'](task_specific_info='sentence_2', path_to_model=model_identifier, custom_wrapper=False)
             else:
                 training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task)
 
-            dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task)
+                dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task)
 
-            test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task)
+                test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task)
 
             table = pd.DataFrame({
                                 "Dev F1": [dev_score],
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     use_seqeval_evaluation_for_ner = args.use_seqeval_evaluation_for_ner
     use_class_weights_for_sent = bool(strtobool(args.class_balanced_for_sent))
     do_train = args.do_train
-    
+
     if current_task == 'all':
 
         pathes_to_data = {'sentiment': args.path_to_dataset_sent,
