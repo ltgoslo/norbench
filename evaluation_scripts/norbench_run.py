@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import sentiment_finetuning
+import ner_t5
 import pos_finetuning
 import ner_finetuning
 import fine_tuning
@@ -51,8 +52,12 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
             if check_for_t5 == False:
                 trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner)
                 test_results =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data)
-                table = pd.DataFrame({
-                                "Test F1": [test_results],
+            else:
+                model, tokenizer = ner_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, use_seqeval_evaluation=use_seqeval_evaluation_for_ner)
+                test_results = ner_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name)
+            
+            table = pd.DataFrame({
+                    "Test F1": [test_results],
                                 })
 
         else:
