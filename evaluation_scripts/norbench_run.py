@@ -2,11 +2,11 @@ import argparse
 import numpy as np
 import pandas as pd
 import os
-import data_preparation.data_preparation_sentiment as data_preparation_sentiment
 import sentiment_finetuning
 import pos_finetuning
 import ner_finetuning
 import fine_tuning
+from transformers import AutoModel
 import utils.model_utils as model_utils
 import utils.pos_utils as pos_utils
 from distutils.util import strtobool
@@ -28,30 +28,38 @@ tasks = {
 }
 
 def_subtasks = {
-    'sentiment': 'binary',
+    'sentiment': 'document_3',
     'pos': 'Bokmaal',
     'ner': 'Bokmaal'
 }
 
 def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier, run_name, epochs, use_seqeval_evaluation_for_ner, use_class_weights_for_sent):
     
-    if name_sub_info == '' and data_path == True:
-        name_sub_info = def_subtasks[current_task]
-        print(f'...As subtask info was not mentioned, {name_sub_info} was chosen as default for task {current_task}...')
+    if name_sub_info == '':
+        if data_path == True:
+            name_sub_info = def_subtasks[current_task]
+            print(f'...As subtask info was not mentioned, {name_sub_info} was chosen as default for task {current_task}...')
+        else:
+            name_sub_info = def_subtasks[current_task]
+            print(f'...As subtask info was not mentioned and path_to_dataset was explicitly stated, {name_sub_info} was chosen as default for task {current_task}...')
+            print(f'...If the current info for subtask is needed, it should be stated explicitly in argument --task_specific_info...')
+
+    check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_utils.get_full_model_names(model_identifier)).config.architectures[0].lower() else False
 
     if do_train == True:
         if current_task == 'ner':
-            trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner)
-            test_results =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data)
-            table = pd.DataFrame({
-                            "Test F1": [test_results],
-                            })
+            if check_for_t5 == False:
+                trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner)
+                test_results =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data)
+                table = pd.DataFrame({
+                                "Test F1": [test_results],
+                                })
 
         else:
             # add iterations!!!!
             if current_task == 'sentiment':
                 #dev_score, test_score = sentiment_finetuning.training_evaluating(task_specific_info, path_to_model, custom_wrapper, lr, max_length, batch_size, epochs)
-                dev_score, test_score = tasks[current_task]['train_evaluate'](task_specific_info='sentence_2', path_to_model=model_identifier, custom_wrapper=False)
+                dev_score, test_score = tasks[current_task]['train_evaluate'](task_specific_info=name_sub_info, path_to_model_prev=model_identifier, custom_wrapper=False) 
             else:
                 training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task)
 
@@ -70,8 +78,8 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
         if not os.path.exists("results"):
             os.makedirs("results")
             
-        table.to_csv(f"results/_{run_name}_{current_task}.tsv", sep="\t")
-        print(f"Scores saved to results/_{run_name}_{current_task}.tsv")
+        table.to_csv(f"results/{run_name}_{str(name_sub_info)}_{current_task}.tsv", sep="\t")
+        print(f"Scores saved to results/{run_name}_{str(name_sub_info)}_{current_task}.tsv")
 
 
 def checking_data(path_to_data, task):

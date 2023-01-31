@@ -15,11 +15,10 @@ import utils.utils as utils
 import utils.pos_utils as pos_utils
 import utils.model_utils as model_utils
 import data_preparation.data_preparation_pos as data_preparation_pos
-import data_preparation.data_preparation_sentiment as data_preparation_sentiment
 import random as python_random
 from transformers import TFBertForSequenceClassification, BertTokenizer, TFBertForTokenClassification, TFXLMRobertaForTokenClassification, TFDistilBertForTokenClassification
 
-metric_names = {"pos": "Accuracy", "sentiment": "Macro F1"}
+metric_names = {"pos": "Accuracy"}
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -32,7 +31,7 @@ tf.random.set_seed(42)
 
 class Trainer:
     def __init__(self, data_path, task, model_name, run_name, name_sub_info, use_class_weights=False):
-        score_functions = {"pos": self.get_score_pos, "sentiment": self.get_score_sentiment}
+        score_functions = {"pos": self.get_score_pos}
 
         # self.training_lang = training_lang
         self.data_path = data_path
@@ -77,12 +76,7 @@ class Trainer:
         self.checkpoint_dir = checkpoints_path +  self.task + "/" + self.sub_info  + "/"
         if not os.path.isdir(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
-        if self.task == "sentiment" and self.use_class_weights == False:
-            suffix = "_classweights"
-        elif self.task == "sentiment" and self.use_class_weights == True:
-            suffix = "_balancedclasses"
-        else:
-            suffix = ""
+        suffix = ""
         self.suffix = suffix
         self.checkpoint_filepath = \
             self.checkpoint_dir + self.save_model_name + f"_{self.task}_checkpoint{suffix}.hdf5"
@@ -137,18 +131,6 @@ class Trainer:
                 )
                 if dataset_name != "train":
                     self.setup_eval(data, dataset_name)
-            elif self.task == "sentiment":
-
-                balanced = self.use_class_weights
-                self.balanced = balanced
-                self.limit = limit
-                # if self.data_path == True:
-                #    self.data_path = model_utils.download_datasets(self.task, self.sub_info)
-
-                data, dataset = data_preparation_sentiment.load_dataset(
-                    self.data_path, self.tokenizer, self.model, self.max_length,
-                    balanced=balanced, limit=limit, dataset_name=dataset_name
-                )
             if dataset_name == "train":
                 dataset, batches = model_utils.make_batches(
                     dataset, self.train_batch_size, repetitions=self.epochs, shuffle=True
@@ -163,16 +145,6 @@ class Trainer:
         self.dev_dataset, self.dev_batches, self.dev_data = datasets["dev"]
         self.train_eval_dataset, self.train_eval_batches, self.train_eval_data = datasets[
             "train_eval"]
-
-    def calc_class_weights(self):
-        """
-        weight(class) = total / (n_classes * n_class)
-        """
-        y = self.train_eval_data["sentiment"]
-        self.class_weights = {}
-        classes = np.unique(y)
-        for cls in classes:
-            self.class_weights[cls] = len(y) / (len(classes) * (y == cls).sum())
 
     def setup_training(self, load_previous_checkpoint=False):
         self.history = History(self)
@@ -228,11 +200,6 @@ class Trainer:
         assert len(new_preds) == len(self.eval_info[dataset_name]["all_labels"])
         return (np.array(self.eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
 
-    def get_score_sentiment(self, preds, data, dataset_name=None):
-        # FIXME: get rid of this redundant "dataset_name" here
-        return f1_score(data["sentiment"].values, preds[0].argmax(axis=-1),
-                        average="macro")
-
     def save_checkpoint(self, dev_score):
         print(
             f"Dev score improved from {self.history.best_dev_score:.4f} "
@@ -240,10 +207,6 @@ class Trainer:
         self.model.save_weights(self.checkpoint_filepath)
 
     def train(self):
-        if self.use_class_weights and not self.class_weights:
-            print("Calculating class weights")
-            self.calc_class_weights()
-            print(self.class_weights)
 
         self.start_time = time.time()
 
@@ -286,8 +249,6 @@ class Trainer:
     def make_definitive(self):
         rename_files = [self.checkpoint_filepath, self.history.log_filepath,
                         self.history.checkpoint_params_filepath]
-        if self.task == "sentiment":
-            rename_files.append(self.history.checkpoint_report_filepath)
         for file in rename_files:
             os.replace(file, file.replace("_checkpoint", "").replace(self.suffix, ""))
 
@@ -360,13 +321,6 @@ class History:
         pd.DataFrame.from_dict(params, orient="index").to_csv(
             self.checkpoint_params_filepath, index=False
         )
-        # Classification report for sentiment
-        if self.task == "sentiment":
-            report = classification_report(self.dev_data["sentiment"].values,
-                                           dev_preds[0].argmax(axis=-1), output_dict=True)
-            pd.DataFrame.from_dict(report).transpose().to_csv(
-                self.checkpoint_report_filepath
-            )
 
     def update_hist(self, epoch, loss, train_score, dev_score, epoch_duration):
         self.epoch_list.append(epoch)

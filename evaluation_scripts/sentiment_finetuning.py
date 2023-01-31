@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from torch import nn
 from utils.utils_sentiment_t5 import *
 from utils.utils_sentiment import *
+from utils.model_utils import get_full_model_names
 import pandas as pd
 import numpy as np
 import warnings
@@ -14,6 +15,7 @@ import torch
 import time
 import sys 
 import os
+
 
 from transformers import logging
 logging.set_verbosity_warning()
@@ -485,8 +487,13 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
 
 
 # DONT FORGET TO CHANGE ARGUMENTS AND DELETE DF REDUCTION!!!!
-def training_evaluating(task_specific_info:str, path_to_model:str, custom_wrapper:False, lr=1e-05, max_length=64, batch_size=4, epochs=1):
+def training_evaluating(task_specific_info:str, path_to_model_prev:str, custom_wrapper:False, lr=1e-05, max_length=64, batch_size=4, epochs=1):
     
+    try:
+        path_to_model = get_full_model_names(path_to_model_prev)
+    except:
+        path_to_model = path_to_model_prev
+
     level, classification = task_specific_info.split('_')
     classification = int(classification)
 
