@@ -43,11 +43,11 @@ np.random.seed(seed)
 python_random.seed(seed)
 tf.random.set_seed(seed)
 
-def getting_data(tokenizer, path, batch_size=8, max_length=512, full_pipeline=True):
+def getting_data(tokenizer, path, batch_size=8, max_length=512, eval_batch_size=8, full_pipeline=True):
     if full_pipeline == True:
         train_dataset_data, val_dataset_data, test_dataset_data = data_preparation_ner.collecting_data_t5(tokenizer, path, max_length)
         train_dataset = DataLoader(train_dataset_data, batch_size=batch_size, drop_last=True, shuffle=True)
-        val_dataset = DataLoader(val_dataset_data, batch_size=batch_size)
+        val_dataset = DataLoader(val_dataset_data, batch_size=eval_batch_size)
         test_dataset = DataLoader(test_dataset_data, batch_size=batch_size)
         return train_dataset, val_dataset, test_dataset
     else:
@@ -56,9 +56,9 @@ def getting_data(tokenizer, path, batch_size=8, max_length=512, full_pipeline=Tr
         return test_dataset
 
 
-def initialize_opt_shed(model, train_dataset, epochs):
+def initialize_opt_shed(model, train_dataset, epochs, learning_rate=3e-5):
     optimizer = AdamW(model.parameters(),
-                  lr = 3e-5
+                  lr = learning_rate
                   )
 
     total_steps = len(train_dataset) * epochs
@@ -179,7 +179,7 @@ def validating(model, tokenizer, dataloader, valid_stats, epoch):
 
 
 
-def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, batch_size=8, max_length=512, tagset=tagset):
+def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, max_length=512, batch_size=8, eval_batch_size=8, learning_rate=3e-5, tagset=tagset):
 
     checkpoints_path = f"checkpoints/{task}/{sub_info}/{run_name}/"
     if not os.path.isdir(checkpoints_path):
@@ -190,8 +190,8 @@ def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, us
         
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     model = T5ForConditionalGeneration.from_pretrained(model_name).to(device)
-    train_dataset, val_dataset, test_dataset  =  getting_data(tokenizer, data_path, batch_size=batch_size, max_length=max_length)
-    optimizer, scheduler, scaler = initialize_opt_shed(model, train_dataset, epochs)
+    train_dataset, val_dataset, test_dataset  =  getting_data(tokenizer, data_path, batch_size=batch_size, max_length=max_length, eval_batch_size=eval_batch_size)
+    optimizer, scheduler, scaler = initialize_opt_shed(model, train_dataset, epochs, learning_rate)
     training_stats = []
     valid_stats = []
     best_valid_loss = float('inf')
@@ -260,7 +260,7 @@ def test(data_path, name_sub_info, model_identifier, tokenizer, current_task, ru
 
     model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
     model.load_state_dict(torch.load(checkpoints_path+name_to_save))
-    test_dataset = getting_data(tokenizer, data_path, batch_size=batch_size, max_length=max_length, full_pipeline=False)
+    test_dataset = getting_data(tokenizer, data_path, max_length=max_length, batch_size=batch_size, full_pipeline=False)
     outputs, targets, all_text, true_labels, pred_labels = test_generate(model, tokenizer, test_dataset)
     
     
