@@ -15,19 +15,23 @@ def test(data_path,
          run_name='',
          epochs=5,
          task="pos",
+         max_length=256,
+         batch_size=8,
+         eval_batch_size=64, 
+         learning_rate=2e-5,
          sub_task_info='Bokmaal'):
     checkpoints_path = "checkpoints/"
     trainer = fine_tuning.Trainer(data_path, task, short_model_name, run_name, sub_task_info)
     # Model parameters
-    max_length = 256
-    batch_size = 8
-    eval_batch_size = 8
-    learning_rate = 2e-5
+    max_length = max_length
+    batch_size = batch_size
+    eval_batch_size = eval_batch_size
+    learning_rate = learning_rate
     tagset = pos_utils.get_ud_tags()
     num_labels = len(tagset)
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, tagset=tagset,
-                        eval_batch_size=64)
+                        eval_batch_size=eval_batch_size)
     weights_path = checkpoints_path + task + "/" + sub_task_info + '/'
     if run_name == '' :
         weights_filename = short_model_name.replace("/", "_") + "_pos.hdf5"
@@ -62,7 +66,9 @@ def train(data_path,
           run_name='',
           epochs=10,
           task="pos",
+          max_length=256,
           batch_size=8,
+          eval_batch_size=64,
           learning_rate=2e-5,
           sub_task_info='Bokmaal'):
           
@@ -72,15 +78,16 @@ def train(data_path,
     
     #
     # Model parameters
-    max_length = 256
-    # batch_size = 8
-    # learning_rate = 2e-5
+    max_length = max_length
+    batch_size = batch_size
+    eval_batch_size = eval_batch_size
+    learning_rate = learning_rate
     tagset = pos_utils.get_ud_tags()
     num_labels = len(tagset)
     #
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, tagset=tagset,
-                        eval_batch_size=64)
+                        eval_batch_size=eval_batch_size)
     #
     # Checkpoint for best model weights
     trainer.setup_checkpoint(checkpoints_path)

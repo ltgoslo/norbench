@@ -7,7 +7,6 @@ import os
 import glob
 import numpy as np
 import tensorflow as tf
-from utils.ner_utils import models_type
 from utils.model_utils import create_model, download_datasets
 import random as python_random
 import data_preparation.data_preparation_ner as data_preparation_ner
@@ -82,11 +81,11 @@ def model_init(model_name, task, tagset):
     return model, tokenizer
 
 
-def init_args(output_dir, epochs=20):
+def init_args(output_dir, batch_size=16, eval_batch_size=32, learning_rate=3e-05, epochs=20):
     num_train_epochs = epochs
-    per_device_train_batch_size = 2
-    per_device_eval_batch_size = 8
-    learning_rate = 3e-05
+    per_device_train_batch_size = batch_size
+    per_device_eval_batch_size = eval_batch_size
+    learning_rate = learning_rate
     weight_decay = 0.0
     adam_beta1 = 0.9
     adam_beta2 = 0.999
@@ -127,11 +126,11 @@ def init_args(output_dir, epochs=20):
     return training_args, output_dir
 
 
-def initialization_trainer(model, tokenizer, tokenized_data, data_collator, output_dir, epochs, use_seqeval_evaluation, max_length=512, overwrite_cache=True, padding=False, label_all_tokens=False):
+def initialization_trainer(model, tokenizer, tokenized_data, data_collator, output_dir, epochs, use_seqeval_evaluation, batch_size, eval_batch_size, learning_rate, overwrite_cache=True, padding=False, label_all_tokens=False):
     
     set_seed(seed)
 
-    training_args, output_dir = init_args(output_dir, epochs)
+    training_args, output_dir = init_args(output_dir, batch_size, eval_batch_size, learning_rate, epochs)
 
     # Initialize our Trainer
     if use_seqeval_evaluation == False:
@@ -156,7 +155,7 @@ def initialization_trainer(model, tokenizer, tokenized_data, data_collator, outp
     return trainer
 
 
-def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, max_length=512, tagset=tagset):
+def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, max_length=512, batch_size=16, eval_batch_size=32, learning_rate=2e-5, tagset=tagset):
     
     checkpoints_path = "checkpoints/" + task + '/' + sub_info + '/' + run_name + '/'
 
@@ -168,7 +167,7 @@ def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_
     model, tokenizer = model_init(model_name, task, tagset)
     tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path, max_length=max_length)
 
-    trainer = initialization_trainer(model, tokenizer, tokenized_data, data_collator, checkpoints_path, epochs, use_seqeval_evaluation, max_length)
+    trainer = initialization_trainer(model, tokenizer, tokenized_data, data_collator, checkpoints_path, epochs, use_seqeval_evaluation, batch_size, eval_batch_size, learning_rate)
     train_result = trainer.train()
     trainer.save_model()  # Saves the tokenizer too for easy upload
 
@@ -199,7 +198,7 @@ def train_use_eval(data_path, sub_info, model_name, run_name, task, epochs, use_
     return trainer, tokenized_data
 
 
-def test(data_path, sub_info, model_name, task, run_name, trainer=None, tokenized_data=None, max_length=512, tagset=tagset):
+def test(data_path, sub_info, model_name, task, run_name, trainer=None, tokenized_data=None, max_length=512, batch_size=16, eval_batch_size=32, learning_rate=2e-5, tagset=tagset):
     """# Run Predictions on the Test Dataset"""
     
     if data_path == True:
@@ -213,7 +212,7 @@ def test(data_path, sub_info, model_name, task, run_name, trainer=None, tokenize
         path_to_model = glob.glob(checkpoints_path + 'checkpoint-*/')[0]
         model = AutoModelForTokenClassification.from_pretrained(path_to_model)
 
-        args, _ = init_args(checkpoints_path)
+        args, _ = init_args(checkpoints_path, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
 
         tokenized_data, data_collator = data_preparation_ner.collecting_data(tokenizer, data_path, max_length, full_pipeline=False)
         
@@ -251,4 +250,3 @@ def test(data_path, sub_info, model_name, task, run_name, trainer=None, tokenize
     print('Scores:')
     test_results = evaluate_ner.evaluation(path_to_predictions, path_to_test)
     return test_results
-
