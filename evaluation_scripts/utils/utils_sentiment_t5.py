@@ -111,8 +111,10 @@ def load_dataset(df, tokenizer, max_length, target_len, level):
     df["sentiment"] = pd.to_numeric(df["sentiment"])  # Sometimes label gets read as string
 
     review_input_ids, review_attention_masks = tokenize_dataset(df["review"].values, tokenizer, max_length)
-    if level == 'sentence':
+    if level == 'sentence' and target_len == 3:
         maping_label = {0:'negative', 1: 'neutral', 2: 'positive'}
+    if level == 'sentence' and target_len == 2:
+        maping_label = {0:'negative', 1: 'positive'}
     if level == 'document':
         maping_label = {0:'negative', 1: 'fair', 2: 'positive'}
     df['label'] = df['sentiment'].apply(lambda s: maping_label[s])
