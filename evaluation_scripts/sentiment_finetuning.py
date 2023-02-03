@@ -93,6 +93,9 @@ def train_epoch(
 
 
 def eval_model(model, data_loader, loss_fn, device, n_examples,level, classification):
+  
+  pred_df = pd.DataFrame(columns=['true','pred'])
+
   model = model.eval()
   losses = []
   correct_predictions = 0
@@ -115,13 +118,19 @@ def eval_model(model, data_loader, loss_fn, device, n_examples,level, classifica
   f1 = f1_score(y_true, y_pred, average='macro')
   if level == 'document':
     report = classification_report(labels_to_names_document(y_true), labels_to_names_document(y_pred))
+    pred_df['true'] = labels_to_names_document(y_true)
+    pred_df['pred'] = labels_to_names_document(y_pred)
   if level == 'sentence':
     if classification == 2:
         report = classification_report(labels_to_names_sent2(y_true), labels_to_names_sent2(y_pred))
+        pred_df['true'] = labels_to_names_sent2(y_true)
+        pred_df['pred'] = labels_to_names_sent2(y_pred)
     if classification == 3:
         report = classification_report(labels_to_names_sent3(y_true), labels_to_names_sent3(y_pred))
+        pred_df['true'] = labels_to_names_sent3(y_true)
+        pred_df['pred'] = labels_to_names_sent3(y_pred)
 
-  return correct_predictions.double() / n_examples, np.mean(losses), f1, report
+  return correct_predictions.double() / n_examples, np.mean(losses), f1, report, pred_df
 
 
 
@@ -168,7 +177,7 @@ def training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_len
         print(f'Train loss -- {train_loss} -- accuracy {train_acc} -- f1 {train_f1}')
 
         val_scores = []
-        val_acc, val_loss, val_f1, report = eval_model(
+        val_acc, val_loss, val_f1, report, _ = eval_model(
             model,
             val_data_loader,
             loss_fn,
@@ -190,15 +199,15 @@ def training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_len
             pathlib.Path(f'checkpoints/{level}_{classification}_classes').mkdir(parents=True, exist_ok=True)  
             torch.save(model.state_dict(),f'checkpoints/{level}_{classification}_classes/{model_name}.bin')
 
-    test_acc, test_loss, test_f1, test_report = eval_model(
-                                                model,
-                                                test_data_loader,
-                                                loss_fn,
-                                                device,
-                                                len(df_test),
-                                                level,
-                                                classification
-                                            )
+    test_acc, test_loss, test_f1, test_report, pred_df = eval_model(
+                                                            model,
+                                                            test_data_loader,
+                                                            loss_fn,
+                                                            device,
+                                                            len(df_test),
+                                                            level,
+                                                            classification
+                                                        )
 
 
     print()
@@ -207,6 +216,10 @@ def training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_len
     print(f'Test accuracy {test_acc}, f1 {test_f1}')
     print()
     print(test_report)
+
+    pathlib.Path(f'predicted_data/').mkdir(parents=True, exist_ok=True)
+    pred_df['text'] = df_test.review
+    pred_df.to_csv(f'predicted_data/{level}_{classification}_{model_name}.csv')
 
     avg_val_f1, avg_test_f1 = max(val_scores), test_f1
     return avg_val_f1, avg_test_f1
@@ -395,14 +408,13 @@ def testing(model, dataloader, tokenizer,test_dataset, device):
 
     pred_df['true'] = actuals
     pred_df['pred'] = predictions
-    #pred_df.to_csv('test_preds.csv')
 
     # calculate the average loss over all of the batches.
     avg_test_loss = total_test_loss / len(dataloader)
     avg_test_acc = total_test_acc / len(test_dataset)
     avg_test_f1 = total_test_f1 / len(test_dataset)
 
-    return avg_test_loss, avg_test_acc, avg_test_f1
+    return avg_test_loss, avg_test_acc, avg_test_f1, pred_df
 
 
 def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification):
@@ -414,13 +426,9 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
 
     tokenizer = AutoTokenizer.from_pretrained(path_to_model)
 
-   #########!!!!!!!!!!
-    #target_len = classification
-    #########!!!!!!!!!!
-
-    train_loader = load_dataset(df_train, tokenizer, max_length=max_length, target_len=3, level=level)
-    dev_loader = load_dataset(df_val, tokenizer, max_length=max_length, target_len=3, level=level)
-    test_loader = load_dataset(df_test, tokenizer, max_length=max_length, target_len=3, level=level)
+    train_loader = load_dataset(df_train, tokenizer, max_length=max_length, target_len=classification, level=level)
+    dev_loader = load_dataset(df_val, tokenizer, max_length=max_length, target_len=classification, level=level)
+    test_loader = load_dataset(df_test, tokenizer, max_length=max_length, target_len=classification, level=level)
 
     train_dataset = DataLoader(train_loader, batch_size=int(batch_size), drop_last=True, shuffle=True)
     val_dataset = DataLoader(dev_loader, batch_size=int(batch_size), shuffle=False)
@@ -476,8 +484,12 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
     print()
     print('-------------TESTINGS-----------------')
     print()
-    avg_test_loss, avg_test_acc, avg_test_f1 = testing(model, test_dataset, tokenizer, test_dataset, device)
+    avg_test_loss, avg_test_acc, avg_test_f1, pred_df = testing(model, test_dataset, tokenizer, test_dataset, device)
     print(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
+
+    pathlib.Path(f'predicted_data/').mkdir(parents=True, exist_ok=True)
+    pred_df['text'] = df_test.review
+    pred_df.to_csv(f'predicted_data/{level}_{classification}_{model_name}.csv')
 
     return  max(valid_losses), avg_test_f1
 
@@ -485,9 +497,7 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
 ### General training and evaluating function
 ### =========================================================================================================
 
-
-# DONT FORGET TO CHANGE ARGUMENTS AND DELETE DF REDUCTION!!!!
-def training_evaluating(task_specific_info:str, path_to_model_prev:str, custom_wrapper:False, lr=1e-05, max_length=64, batch_size=4, epochs=1):
+def training_evaluating(task_specific_info:str, path_to_model_prev:str, custom_wrapper:False, lr=1e-05, max_length=512, batch_size=16, epochs=10):
     
     try:
         path_to_model = get_full_model_names(path_to_model_prev)
@@ -527,7 +537,7 @@ def training_evaluating(task_specific_info:str, path_to_model_prev:str, custom_w
     
     if level != 'sentence' and level != 'document': 
         print('Please specify level of sentiment analysis and number of classes! Examples: "sentence_2", "sentence_3" or "document_3"')
-
+    
     print(f'Train samples: {len(df_train)}')
     print(f'Validation samples: {len(df_val)}')
     print(f'Test samples: {len(df_test)}')
@@ -536,15 +546,12 @@ def training_evaluating(task_specific_info:str, path_to_model_prev:str, custom_w
     automodel = AutoModel.from_pretrained(path_to_model)
 
     if 't5' not in automodel.config.architectures[0].lower():
+        print('You are fine-tuning masked language model')
         avg_val_f1, avg_test_f1 = training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification)
     else:
+        print('You are fine-tuning T5 model')
         avg_val_f1, avg_test_f1 = training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification)
 
     return avg_val_f1, avg_test_f1
-
-
-
-
-#avg_val_f1, avg_test_f1 = training_evaluating(task_specific_info='sentence_2', custom_wrapper=False, path_to_model='t5-small')
 
 
