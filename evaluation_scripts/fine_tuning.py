@@ -16,7 +16,7 @@ import utils.pos_utils as pos_utils
 import utils.model_utils as model_utils
 import data_preparation.data_preparation_pos as data_preparation_pos
 import random as python_random
-from transformers import TFBertForSequenceClassification, BertTokenizer, TFBertForTokenClassification, TFXLMRobertaForTokenClassification, TFDistilBertForTokenClassification
+from transformers import BertTokenizer
 
 metric_names = {"pos": "Accuracy"}
 

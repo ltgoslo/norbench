@@ -66,7 +66,7 @@ def train_epoch(
   model = model.train()
   losses = []
   correct_predictions = 0
-  
+
   for d in data_loader:
     input_ids = d["input_ids"].to(device)
     attention_mask = d["attention_mask"].to(device)
@@ -77,7 +77,7 @@ def train_epoch(
       attention_mask=attention_mask
     )
     preds_idxs = torch.max(outputs, dim=1).indices
-    y_pred += preds_idxs.numpy().tolist()
+    y_pred += preds_idxs.cpu().numpy().tolist()
     loss = loss_fn(outputs, targets)
     correct_predictions += torch.sum(preds_idxs == targets)
 
