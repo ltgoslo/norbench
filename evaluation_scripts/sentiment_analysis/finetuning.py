@@ -207,7 +207,7 @@ def training_evaluating_not_t5():
                 num_training_steps=total_steps
                 )
     
-    best_valid_f1 = float('inf')
+    best_valid_f1 = float('-inf')
 
     for epoch in range(epochs):
         print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
@@ -494,7 +494,7 @@ def training_evaluating_t5():
     scaler = GradScaler()
 
     valid_losses = []
-    best_valid_loss = float('inf')
+    best_valid_loss = float('-inf')
 
     for epoch in range(epochs):
         print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
