@@ -237,7 +237,6 @@ def training_evaluating_not_t5():
             scheduler,
             len(df_train)
         )
-        logger.info()
         logger.info(f'Train loss -- {train_loss} -- accuracy {train_acc} -- f1 {train_f1}')
 
         val_scores = []
@@ -248,7 +247,6 @@ def training_evaluating_not_t5():
             device,
             len(df_val)
         )
-        logger.info()
         logger.info(f'Val loss {val_loss} -- accuracy -- {val_acc} -- f1 {val_f1}')
         logger.info(report)
 
@@ -269,9 +267,7 @@ def training_evaluating_not_t5():
                                             )
 
 
-    logger.info()
     logger.info('-------------TESTINGS-----------------')
-    logger.info()
     logger.info(f'Test accuracy {test_acc}, f1 {test_f1}')
     logger.info(test_report)
 
@@ -524,14 +520,11 @@ def training_evaluating_t5():
                     scheduler,
                     tokenizer)
 
-        logger.info()
         logger.info(f'Train loss -- {avg_train_loss} -- accuracy {avg_train_acc} -- f1 {avg_train_f1}')
-        logger.info()
 
         # validate
         avg_valid_loss, avg_valid_acc, avg_valid_f1 = validating(model, val_dataset, tokenizer)
         logger.info(f'Validation loss -- {avg_valid_loss} -- accuracy {avg_valid_acc} -- f1 {avg_valid_f1}')
-        logger.info()
         valid_losses.append(avg_valid_loss)
         # check validation loss
         if valid_losses[epoch] > best_valid_loss:
@@ -542,9 +535,7 @@ def training_evaluating_t5():
             torch.save(model.state_dict(),f'saved_models/{model_name}.pt')
 
     # TEST 
-    logger.info()
     logger.info('-------------TESTINGS-----------------')
-    logger.info()
     avg_test_loss, avg_test_acc, avg_test_f1 = testing(model, test_dataset, tokenizer, test_dataset)
     logger.info(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
     return 'Done!'
