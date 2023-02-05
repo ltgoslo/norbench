@@ -1,8 +1,7 @@
-from transformers import  AutoModel, AutoTokenizer, AutoModelForSequenceClassification, get_linear_schedule_with_warmup, T5ForConditionalGeneration
+from transformers import  AutoModel, AutoTokenizer, AutoModelForSequenceClassification, \
+    get_linear_schedule_with_warmup, T5ForConditionalGeneration
 from sklearn.metrics import  classification_report, f1_score, accuracy_score
 from torch.cuda.amp import autocast, GradScaler
-from torch.utils.data import DataLoader
-from argparse import ArgumentParser
 from torch import nn
 from utils.utils_sentiment_t5 import *
 from utils.utils_sentiment import *
@@ -12,13 +11,15 @@ import numpy as np
 import warnings
 import pathlib
 import torch
-import time
-import sys 
+import sys
 import os
+import logging
+import tqdm
 
-
-from transformers import logging
-logging.set_verbosity_warning()
+logging.basicConfig(
+    format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
 
@@ -52,44 +53,45 @@ class SentimentClassifier(nn.Module):
 
     return logits
 
+
 def train_epoch(
-  model,
-  data_loader,
-  loss_fn,
-  optimizer,
-  device,
-  scheduler,
-  n_examples
+    model,
+    data_loader,
+    loss_fn,
+    optimizer,
+    device,
+    scheduler,
+    n_examples
 ):
 
-  y_true, y_pred = [], []
-  model = model.train()
-  losses = []
-  correct_predictions = 0
-  
-  for d in data_loader:
-    input_ids = d["input_ids"].to(device)
-    attention_mask = d["attention_mask"].to(device)
-    targets = d["targets"].to(device)
-    y_true += targets.tolist()
-    outputs = model(
-      input_ids=input_ids,
-      attention_mask=attention_mask
-    )
-    preds_idxs = torch.max(outputs, dim=1).indices
-    y_pred += preds_idxs.numpy().tolist()
-    loss = loss_fn(outputs, targets)
-    correct_predictions += torch.sum(preds_idxs == targets)
+    y_true, y_pred = [], []
+    model = model.train()
+    losses = []
+    correct_predictions = 0
 
-    losses.append(loss.item())
-    loss.backward()
-    nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-    optimizer.step()
-    scheduler.step()
-    optimizer.zero_grad()
-  f1 = f1_score(y_true, y_pred, average='macro')
+    for d in tqdm.tqdm(data_loader):
+        input_ids = d["input_ids"].to(device)
+        attention_mask = d["attention_mask"].to(device)
+        targets = d["targets"].to(device)
+        y_true += targets.tolist()
+        outputs = model(
+          input_ids=input_ids,
+          attention_mask=attention_mask
+        )
+        preds_idxs = torch.max(outputs, dim=1).indices
+        y_pred += preds_idxs.cpu().numpy().tolist()
+        loss = loss_fn(outputs, targets)
+        correct_predictions += torch.sum(preds_idxs == targets)
 
-  return correct_predictions.double() / n_examples, np.mean(losses), f1
+        losses.append(loss.item())
+        loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
+        scheduler.step()
+        optimizer.zero_grad()
+    f1 = f1_score(y_true, y_pred, average='macro')
+
+    return correct_predictions.double() / n_examples, np.mean(losses), f1
 
 
 def eval_model(model, data_loader, loss_fn, device, n_examples,level, classification):
