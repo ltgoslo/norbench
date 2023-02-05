@@ -5,28 +5,32 @@ from torch.utils.data import DataLoader
 from argparse import ArgumentParser
 from torch import nn
 from utils_t5 import *
-from utils import *
 import pandas as pd
 import numpy as np
 import warnings
 import pathlib
 import random
 import torch
-import time
-import sys 
+import sys
 import os
-
+import tqdm
+import logging
 
 warnings.filterwarnings("ignore")
 
 parser = ArgumentParser()
-parser.add_argument("-level",required=True, help="'sentence' if you want to use corpora with sentence-level sentiment analysys or 'document' for document-level SA.  'other' if you want to use your own corpora")
-parser.add_argument("-model",required=True, help='Pre-traied model from huggingface or absolute (!) path to local folder with config.json') # '../norbert3-x-small/', 'ltgoslo/norbert2'
+parser.add_argument("-level",required=True,
+                    help="'sentence' if you want to use corpora with sentence-level sentiment "
+                         "analysys or 'document' for document-level SA.  'other' "
+                         "if you want to use your own corpora")
+parser.add_argument("-model",required=True,
+                    help='Pre-traied model from huggingface or absolute (!) path to local '
+                         'folder with config.json') # '../norbert3-x-small/', 'ltgoslo/norbert2'
 
 parser.add_argument("-t5", default='False',  help='Boolean argument - True if use T5 model, False if use any other model') 
-parser.add_argument("-custom_wrapper", default='False', help='Boolean argument - True if use custom wrapper, False if use AutoModelForSequenceClassification') 
-
-parser.add_argument("-data_path", default='', help="Path to folder with train.csv, dev.csv and test.csv") 
+parser.add_argument("-custom_wrapper", default='False',
+                    help='Boolean argument - True if use custom wrapper, False if use AutoModelForSequenceClassification')
+parser.add_argument("-data_path", default='', help="Path to folder with train.csv, dev.csv and test.csv")
 parser.add_argument("-lr", default='1e-05', help='Learning rate.')
 parser.add_argument("-max_length", default='512', help='Max lenght of the sequence in tokens.')
 parser.add_argument("-warmup", default='2', help='The number of steps for the warmup phase.')
@@ -34,7 +38,13 @@ parser.add_argument("-batch_size", default='4', help='Batch size.')
 parser.add_argument("-epochs", default='10', help='Number of epochs for training.')
 args = parser.parse_args()
 
+logging.basicConfig(
+    format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def seed_everything(seed_value=42):
     os.environ['PYTHONHASHSEED'] = str(seed_value)
@@ -46,11 +56,12 @@ def seed_everything(seed_value=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 seed_everything()
 
 
 if args.level == 'sentence':
-    print('You are finetuning sentence-level SA!')
+    logger.info('You are finetuning sentence-level SA!')
     if os.path.exists('data/sentence'):
         df_train = pd.read_csv('data/sentence/train.csv')
         df_val = pd.read_csv('data/sentence/dev.csv')
@@ -59,7 +70,7 @@ if args.level == 'sentence':
         df_train, df_val, df_test = load_data('sentence',args.data_path)
 
 if args.level == 'document':
-    print('You are finetuning document-level SA!')
+    logger.info('You are finetuning document-level SA!')
     if os.path.exists('data/document'):
         df_train = pd.read_csv('data/document/train.csv')
         df_val = pd.read_csv('data/document/dev.csv')
@@ -72,7 +83,9 @@ if args.level == 'other':
     df_train, df_val, df_test = find_csv(args.data_path)
 
 if args.level != 'document' and args.level != 'sentence' and args.level != 'other':
-    print("Please specify -level argument: 'sentence' if you want to use corpora with sentence-level sentiment analysys or 'document' for document-level SA. 'other' if you want to use your own corpora")
+    logger.info("Please specify -level argument: 'sentence' if you want to use corpora with "
+                "sentence-level sentiment analysys or 'document' for document-level SA. 'other' "
+                "if you want to use your own corpora")
 
 
 t5 = str2bool(args.t5)
@@ -88,14 +101,17 @@ class SentimentClassifier(nn.Module):
     super(SentimentClassifier, self).__init__()
 
     if not custom_wrapper:
-      print('You are using a model from HuggingFace.')
-      self.bert = AutoModelForSequenceClassification.from_pretrained(args.model, num_labels=n_classes, ignore_mismatched_sizes=True)
+      logger.info('You are using a model from HuggingFace.')
+      self.bert = AutoModelForSequenceClassification.from_pretrained(args.model,
+                                                                     num_labels=n_classes,
+                                                                     ignore_mismatched_sizes=True)
     if custom_wrapper:
-      print('You are using a custom wrapper, NOT a HuggingFace model.')
+      logger.info('You are using a custom wrapper, NOT a HuggingFace model.')
 
       sys.path.append(args.model)
       from modeling_norbert import NorbertForSequenceClassification
-      self.bert = NorbertForSequenceClassification.from_pretrained(args.model, num_labels=n_classes, ignore_mismatched_sizes=True)
+      self.bert = NorbertForSequenceClassification.from_pretrained(args.model, num_labels=n_classes,
+                                                                   ignore_mismatched_sizes=True)
 
   def forward(self, input_ids, attention_mask):
 
@@ -124,7 +140,7 @@ def train_epoch(
   losses = []
   correct_predictions = 0
   
-  for d in data_loader:
+  for d in tqdm.tqdm(data_loader):
     input_ids = d["input_ids"].to(device)
     attention_mask = d["attention_mask"].to(device)
     targets = d["targets"].to(device)
@@ -181,9 +197,9 @@ def eval_model(model, data_loader, loss_fn, device, n_examples):
 
 def training_evaluating_not_t5():
 
-    print(f'Train samples: {len(df_train)}')
-    print(f'Validation samples: {len(df_val)}')
-    print(f'Test samples: {len(df_test)}')
+    logger.info(f'Train samples: {len(df_train)}')
+    logger.info(f'Validation samples: {len(df_val)}')
+    logger.info(f'Test samples: {len(df_test)}')
 
     max_length = int(args.max_length)
     batch_size = int(args.batch_size)
@@ -210,7 +226,7 @@ def training_evaluating_not_t5():
     best_valid_f1 = float('-inf')
 
     for epoch in range(epochs):
-        print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
+        logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
         train_acc, train_loss, train_f1 = train_epoch(
             model,
             train_data_loader,
@@ -220,8 +236,8 @@ def training_evaluating_not_t5():
             scheduler,
             len(df_train)
         )
-        print()
-        print(f'Train loss -- {train_loss} -- accuracy {train_acc} -- f1 {train_f1}')
+        logger.info()
+        logger.info(f'Train loss -- {train_loss} -- accuracy {train_acc} -- f1 {train_f1}')
 
         val_scores = []
         val_acc, val_loss, val_f1, report = eval_model(
@@ -231,9 +247,9 @@ def training_evaluating_not_t5():
             device,
             len(df_val)
         )
-        print()
-        print(f'Val loss {val_loss} -- accuracy -- {val_acc} -- f1 {val_f1}')
-        print(report)
+        logger.info()
+        logger.info(f'Val loss {val_loss} -- accuracy -- {val_acc} -- f1 {val_f1}')
+        logger.info(report)
 
         val_scores.append(val_f1)
         if best_valid_f1 < val_f1:
@@ -252,11 +268,11 @@ def training_evaluating_not_t5():
                                             )
 
 
-    print()
-    print('-------------TESTINGS-----------------')
-    print()
-    print(f'Test accuracy {test_acc}, f1 {test_f1}')
-    print(test_report)
+    logger.info()
+    logger.info('-------------TESTINGS-----------------')
+    logger.info()
+    logger.info(f'Test accuracy {test_acc}, f1 {test_f1}')
+    logger.info(test_report)
 
     return 'Done!'
 
@@ -462,9 +478,9 @@ def testing(model, dataloader, tokenizer,test_dataset):
 
 def training_evaluating_t5():
 
-    print(f'Train samples: {len(df_train)}')
-    print(f'Validation samples: {len(df_val)}')
-    print(f'Test samples: {len(df_test)}')
+    logger.info(f'Train samples: {len(df_train)}')
+    logger.info(f'Validation samples: {len(df_val)}')
+    logger.info(f'Test samples: {len(df_test)}')
 
     max_length = int(args.max_length)
     tokenizer = AutoTokenizer.from_pretrained(args.model)
@@ -497,7 +513,7 @@ def training_evaluating_t5():
     best_valid_loss = float('-inf')
 
     for epoch in range(epochs):
-        print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
+        logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
         
         # train
         avg_train_loss, avg_train_acc, avg_train_f1 = train(model,
@@ -507,14 +523,14 @@ def training_evaluating_t5():
                     scheduler,
                     tokenizer)
 
-        print()
-        print(f'Train loss -- {avg_train_loss} -- accuracy {avg_train_acc} -- f1 {avg_train_f1}')
-        print()
+        logger.info()
+        logger.info(f'Train loss -- {avg_train_loss} -- accuracy {avg_train_acc} -- f1 {avg_train_f1}')
+        logger.info()
 
         # validate
         avg_valid_loss, avg_valid_acc, avg_valid_f1 = validating(model, val_dataset, tokenizer)
-        print(f'Validation loss -- {avg_valid_loss} -- accuracy {avg_valid_acc} -- f1 {avg_valid_f1}')
-        print()
+        logger.info(f'Validation loss -- {avg_valid_loss} -- accuracy {avg_valid_acc} -- f1 {avg_valid_f1}')
+        logger.info()
         valid_losses.append(avg_valid_loss)
         # check validation loss
         if valid_losses[epoch] > best_valid_loss:
@@ -525,11 +541,11 @@ def training_evaluating_t5():
             torch.save(model.state_dict(),f'saved_models/{model_name}.pt')
 
     # TEST 
-    print()
-    print('-------------TESTINGS-----------------')
-    print()
+    logger.info()
+    logger.info('-------------TESTINGS-----------------')
+    logger.info()
     avg_test_loss, avg_test_acc, avg_test_f1 = testing(model, test_dataset, tokenizer, test_dataset)
-    print(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
+    logger.info(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
     return 'Done!'
 
 
