@@ -16,6 +16,7 @@ import sys
 import os
 import tqdm
 import logging
+import datetime
 
 warnings.filterwarnings("ignore")
 
@@ -37,12 +38,15 @@ parser.add_argument("-max_length", default='512', help='Max lenght of the sequen
 parser.add_argument("-warmup", default='2', help='The number of steps for the warmup phase.')
 parser.add_argument("-batch_size", default='4', help='Batch size.')
 parser.add_argument("-epochs", default='10', help='Number of epochs for training.')
+parser.add_argument("--seed", "-sd", type=int, help="Random seed", default=42)
 args = parser.parse_args()
 
 logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+torch.manual_seed(args.seed)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -254,9 +258,10 @@ def training_evaluating_not_t5():
         if best_valid_f1 < val_f1:
             best_valid_f1 = val_f1
             # save best model
-            model_name = args.model.split('/')[-1] if args.model.split('/')[-1] != '' else args.model.split('/')[-2]
+            model_name = args.model.split('/')[-1] if args.model.split('/')[-1] != '' \
+                else args.model.split('/')[-2]
             pathlib.Path('./saved_models').mkdir(parents=True, exist_ok=True)  
-            torch.save(model.state_dict(),f'saved_models/{model_name}_epoch_{epoch+1}.bin')
+            torch.save(model.state_dict(),f'saved_models/{model_name}.bin')
 
     test_acc, test_loss, test_f1, test_report = eval_model(
                                                 model,
@@ -270,8 +275,9 @@ def training_evaluating_not_t5():
     logger.info('-------------TESTINGS-----------------')
     logger.info(f'Test accuracy {test_acc}, f1 {test_f1}')
     logger.info(test_report)
-
+    print(f"{datetime.datetime.now()}\t{args.seed}\t{test_acc:.4f}\t{test_f1:.4f}")
     return 'Done!'
+
 
 if not t5:
     training_evaluating_not_t5()
