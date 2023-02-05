@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import pathlib
+import random
 import torch
 import time
 import sys 
@@ -19,13 +20,13 @@ import os
 warnings.filterwarnings("ignore")
 
 parser = ArgumentParser()
-parser.add_argument("-level",required=True, help="'sentence' if you want to use corpora with sentence-level sentiment analysys or 'document' for document-level SA")
+parser.add_argument("-level",required=True, help="'sentence' if you want to use corpora with sentence-level sentiment analysys or 'document' for document-level SA.  'other' if you want to use your own corpora")
 parser.add_argument("-model",required=True, help='Pre-traied model from huggingface or absolute (!) path to local folder with config.json') # '../norbert3-x-small/', 'ltgoslo/norbert2'
 
 parser.add_argument("-t5", default='False',  help='Boolean argument - True if use T5 model, False if use any other model') 
 parser.add_argument("-custom_wrapper", default='False', help='Boolean argument - True if use custom wrapper, False if use AutoModelForSequenceClassification') 
 
-parser.add_argument("-data_path", default=None, help="Path to folder with train, dev and test.") 
+parser.add_argument("-data_path", default='', help="Path to folder with train.csv, dev.csv and test.csv") 
 parser.add_argument("-lr", default='1e-05', help='Learning rate.')
 parser.add_argument("-max_length", default='512', help='Max lenght of the sequence in tokens.')
 parser.add_argument("-warmup", default='2', help='The number of steps for the warmup phase.')
@@ -35,6 +36,19 @@ args = parser.parse_args()
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+def seed_everything(seed_value=42):
+    os.environ['PYTHONHASHSEED'] = str(seed_value)
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed_all(seed_value)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+seed_everything()
+
+
 if args.level == 'sentence':
     print('You are finetuning sentence-level SA!')
     if os.path.exists('data/sentence'):
@@ -42,11 +56,7 @@ if args.level == 'sentence':
         df_val = pd.read_csv('data/sentence/dev.csv')
         df_test = pd.read_csv('data/sentence/test.csv')
     else:
-        finded_csv = find_csv(args.data_path)
-        if finded_csv != None:
-            df_train, df_val, df_test = finded_csv
-        else:
-            df_train, df_val, df_test = load_data('sentence',args.data_path)
+        df_train, df_val, df_test = load_data('sentence',args.data_path)
 
 if args.level == 'document':
     print('You are finetuning document-level SA!')
@@ -55,17 +65,15 @@ if args.level == 'document':
         df_val = pd.read_csv('data/document/dev.csv')
         df_test = pd.read_csv('data/document/test.csv')
     else:
-        finded_csv = find_csv(args.data_path)
-        if finded_csv != None:
-            df_train, df_val, df_test = finded_csv
-        else:
-            df_train, df_val, df_test = load_data('document',args.data_path)
-    
+        df_train, df_val, df_test = load_data('document',args.data_path)
     df_train, df_val, df_test = labels_6_to_3(df_train), labels_6_to_3(df_val), labels_6_to_3(df_test)
 
+if args.level == 'other':
+    df_train, df_val, df_test = find_csv(args.data_path)
 
-if args.level != 'document' and args.level != 'sentence':
-    print("Please specify -level argument: 'sentence' if you want to use corpora with sentence-level sentiment analysys or 'document' for document-level SA.")
+if args.level != 'document' and args.level != 'sentence' and args.level != 'other':
+    print("Please specify -level argument: 'sentence' if you want to use corpora with sentence-level sentiment analysys or 'document' for document-level SA. 'other' if you want to use your own corpora")
+
 
 t5 = str2bool(args.t5)
 custom_wrapper = str2bool(args.custom_wrapper)
@@ -126,7 +134,7 @@ def train_epoch(
       attention_mask=attention_mask
     )
     preds_idxs = torch.max(outputs, dim=1).indices
-    y_pred += preds_idxs.numpy().tolist()
+    y_pred += preds_idxs.cpu().numpy().tolist()
     loss = loss_fn(outputs, targets)
     correct_predictions += torch.sum(preds_idxs == targets)
 
@@ -165,6 +173,8 @@ def eval_model(model, data_loader, loss_fn, device, n_examples):
   if args.level == 'document':
     report = classification_report(labels_to_names(y_true), labels_to_names(y_pred))
   if args.level == 'sentence':
+    report = classification_report(labels_to_names_sentence(y_true), labels_to_names_sentence(y_pred))
+  if args.level == 'other':
     report = classification_report(y_true, y_pred)
   return correct_predictions.double() / n_examples, np.mean(losses), f1, report
 
@@ -197,7 +207,7 @@ def training_evaluating_not_t5():
                 num_training_steps=total_steps
                 )
     
-    best_valid_f1 = float('inf')
+    best_valid_f1 = float('-inf')
 
     for epoch in range(epochs):
         print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
@@ -247,6 +257,7 @@ def training_evaluating_not_t5():
     print()
     print(f'Test accuracy {test_acc}, f1 {test_f1}')
     print(test_report)
+
     return 'Done!'
 
 if not t5:
@@ -483,7 +494,7 @@ def training_evaluating_t5():
     scaler = GradScaler()
 
     valid_losses = []
-    best_valid_loss = float('inf')
+    best_valid_loss = float('-inf')
 
     for epoch in range(epochs):
         print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')

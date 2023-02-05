@@ -28,6 +28,18 @@ def labels_to_names(labels):
 
     return new_labels
 
+
+def labels_to_names_sentence(labels):
+
+    mapping = {
+        0:'Negative',
+        1:'Neutral',
+        2:'Positive'
+    }
+    new_labels = [mapping[label] for label in labels]
+
+    return new_labels
+
 def get_text(path: str) -> str:
 
     with open(path, 'r' ,encoding='utf-8') as f: 
@@ -77,33 +89,29 @@ def find_csv(path):
 def load_data(level, path: None):
     
     if level == 'document':    
-        if not path or not os.path.exists(path):
-            norec_document_link = 'https://github.com/ltgoslo/norec'
-            if not os.path.exists('norec/'):
-                Repo.clone_from(norec_document_link, 'norec')
-            path = 'norec/data'
+        norec_document_link = 'https://github.com/ltgoslo/norec'
+        if not os.path.exists('norec/'):
+            Repo.clone_from(norec_document_link, 'norec')
+        path = 'norec/data'
 
-        metadata = pd.read_json(os.path.join(path, "metadata.json"), encoding='utf-8')
-        data = metadata.T[['id', 'rating']]
-        data['txt_names'] = ['0'*(6-len(str(id))) + str(id) + '.txt' for id in data['id']]
-        texts = []
-        splits = []
+        
+        train = pd.DataFrame(columns=['review', 'sentiment'])
+        test = pd.DataFrame(columns=['review', 'sentiment'])
+        dev = pd.DataFrame(columns=['review', 'sentiment'])
 
-        for root, _, files in os.walk(path, topdown=False):
-            for name in files:
-                path_text = os.path.join(root, name)
-                if path_text.endswith('.txt'):
-                        texts.append(get_text(path_text))
-                        splits.append(path_text.split('/')[-2])
+        with open(os.path.join(path, "metadata.json"), 'r') as js:
+            metadata = json.load(js)
 
-        data['text'] = texts
-        data['split'] = splits
-        data = data.rename(columns={"rating": "sentiment", 'text':'review'}, errors="raise")
-        data['sentiment'] = [x-1 for x in data['sentiment']]
-
-        train = data[data.split == 'train']
-        dev = data[data.split == 'dev']
-        test = data[data.split == 'test']
+        for k,v in metadata.items():
+            split = v['split']
+            review = get_text(os.path.join(path, f"{split}/{k}.txt"))
+            sentiment = int(v['rating'])-1
+            if split == 'train':
+                train = train.append({'review':review, 'sentiment':sentiment },ignore_index=True)
+            if split == 'test':
+                test = test.append({'review':review, 'sentiment':sentiment }, ignore_index=True)
+            if split == 'dev':
+                dev = dev.append({'review':review, 'sentiment':sentiment },ignore_index=True)
 
         pathlib.Path('./data/document').mkdir(parents=True, exist_ok=True)
         train[['sentiment', 'review']].to_csv('data/document/train.csv', index=False)
