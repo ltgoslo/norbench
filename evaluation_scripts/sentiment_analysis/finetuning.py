@@ -46,12 +46,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-torch.manual_seed(args.seed)
-
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def seed_everything(seed_value=42):
+def seed_everything(seed_value=args.seed):
     os.environ['PYTHONHASHSEED'] = str(seed_value)
     random.seed(seed_value)
     np.random.seed(seed_value)
