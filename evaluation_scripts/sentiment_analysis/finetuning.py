@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def seed_everything(seed_value=args.seed):
+def seed_everything(seed_value=42):
     os.environ['PYTHONHASHSEED'] = str(seed_value)
     random.seed(seed_value)
     np.random.seed(seed_value)
@@ -60,7 +60,7 @@ def seed_everything(seed_value=args.seed):
     torch.backends.cudnn.benchmark = False
 
 
-seed_everything()
+seed_everything(args.seed)
 
 
 if args.level == 'sentence':
