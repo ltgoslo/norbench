@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import sentiment_finetuning
 import ner_t5
+import pos_t5
 import pos_finetuning
 import ner_finetuning
 import fine_tuning
@@ -47,35 +48,39 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
 
     check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_utils.get_full_model_names(model_identifier)).config.architectures[0].lower() else False
 
+    metric = {'sentiment': 'F1', 
+              'pos': 'Accuracy',
+              'ner': 'F1'}
+
     if do_train == True:
         if current_task == 'ner':
             if check_for_t5 == False:
                 trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                test_results =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                test_score =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
             else:
                 model, tokenizer = ner_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, use_seqeval_evaluation=use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                test_results = ner_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length)
-            
-            table = pd.DataFrame({
-                    "Test F1": [test_results],
-                                })
+                test_score = ner_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length)
 
         else:
-            # add iterations!!!!
             if current_task == 'sentiment':
-                #task_specific_info:str, path_to_model_prev:str, custom_wrapper:False, lr=1e-05, max_length=64, batch_size=4, epochs=1
-
                 dev_score, test_score = tasks[current_task]['train_evaluate'](task_specific_info=name_sub_info, path_to_model_prev=model_identifier, custom_wrapper=custom_wrapper, lr=learning_rate, max_length=max_length, batch_size=batch_size, epochs=epochs) 
             else:
-                training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task, max_length=max_length)
+                if check_for_t5 == False:
+                    training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                else:
+                    model, tokenizer = pos_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    test_score = pos_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length)
 
-                dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length)
-
-                test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length)
-
+        try:
             table = pd.DataFrame({
-                                "Dev F1": [dev_score],
-                                "Test F1": [test_score]
+                                    f"Dev {metric[current_task]}": [dev_score],
+                                    f"Test {metric[current_task]}": [test_score]
+                                    })
+        except:
+            table = pd.DataFrame({
+                                f"Test {metric[current_task]}": [test_score]
                                 })
 
         print(table)
@@ -116,14 +121,14 @@ if __name__ == "__main__":
     parser.add_argument("--model_name",  help="name of the model that will be used as an identifier for checkpoints", default="norbench_model")
     parser.add_argument("--path_to_model", help="path to model / 'all' to run all models that were tested for Norbench", default="ltgoslo/norbert")
     parser.add_argument("--download_cur_data", help="True if downloading of repositories with relevant data is needed",  type=bool, default=False)
-    parser.add_argument("--custom_wrapper", choices=('True','False'), default='False')
+    parser.add_argument("--custom_wrapper", help="True if custom wrapper should be specified", choices=('True','False'), default='False')
     parser.add_argument("--do_train", help="True if model will be trained from scratch", type=bool, default=True)
-    parser.add_argument("--max_length",  type=int, default=256)
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--eval_batch_size", type=int, default=8)
-    parser.add_argument("--learning_rate", type=float, default=2e-5)
+    parser.add_argument("--max_length", help="Max length of the exmple (in tokens)", type=int, default=256)
+    parser.add_argument("--batch_size", help="The size of batch for training", type=int, default=8)
+    parser.add_argument("--eval_batch_size", help="The size of batch for evaluating", type=int, default=8)
+    parser.add_argument("--learning_rate", help="Learning rate", type=float, default=2e-5)
     parser.add_argument("--use_seqeval_evaluation_for_ner", help="True if seqeval metrics should be used during evaluation for ner task", type=bool, default=False)
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", help="The number of epochs", type=int, default=10)
 
     args = parser.parse_args()
 

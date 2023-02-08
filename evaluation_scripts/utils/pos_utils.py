@@ -99,3 +99,44 @@ def token_type_model_attr(model, max_length):
       return True
     except:
       return False
+
+
+def entities_tokens():
+    
+    list_of_tags = get_ud_tags()
+    marked_list_of_tags = [f"<{tag}>" for tag in list_of_tags]
+
+    labels2words = {
+    "O": '[Other]',
+    "_": '[None]', 
+    "ADJ": '[Adjective]',
+    "ADP": '[Adposition]',
+    "ADV": '[Adverb]',
+    "AUX": '[Auxiliary]',
+    "CCONJ": '[Coordconj]',
+    "DET": '[Determiner]',
+    "INTJ": '[Interjection]',
+    "NOUN": '[Noun]',
+    "NUM": '[Numeral]',
+    "PART": '[Particle]',
+    "PRON": '[Pronoun]',
+    "PROPN": '[Propernoun]',
+    "PUNCT": '[Punctuation]',
+    "SCONJ": '[Subordconj]',
+    "SYM": '[Symbol]',
+    "VERB": '[Verb]',
+    "X": '[Unseen]'}
+
+    entities2markedtags = {v: f"<{k}>" for k, v in labels2words.items()}
+    
+    return list_of_tags, marked_list_of_tags, labels2words, entities2markedtags
+
+
+def organized_subsets_t5(data, id2label):
+    ids, tokens, tags, tags_indexed = [], [], [], []
+    for el in data:
+        ids.append(el['id'])
+        tokens.append(el['tokens'])
+        tags.append(el['tags'])
+        tags_indexed.append([id2label[tag] for tag in el['tags']])
+    return ids, tokens, tags, tags_indexed

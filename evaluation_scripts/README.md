@@ -4,108 +4,23 @@
 
 At the moment, we have the evaluation scripts for [4 NLP tasks](http://wiki.nlpl.eu/Vectors/norlm/norbert). 
 
-* [How repository is organized](#STRUCT) 
-* In the current documentation information about 3 of 4 tasks is provided in details:
-  + [Part-Of-Speech tagging task](#POS)
-    - [Parameters](#POS_PARAMS)
-    - [Evaluation](#POS_EVAL)
-    - [Available Models](#POS_MODELS)
+* In the current documentation, information about 3 of 4 tasks is provided in details:
   + [Fine-grained Sentiment Analysis task](#FINEGRAINED) -- detailed information about the current task is provided in the repository by link in the section
-  + [Binary Sentiment Analysis task](#BINARYSENT)
-    - [Parameters](#BINARYSENT_PARAMS)
-    - [Evaluation](#BINARYSENT_EVAL)
-    - [Available Models](#BINARYSENT_MODELS)
+  + [Sentiment Analysis task](#SENT)
+    - [Data](#SENT_DATA)
+    - [Evaluation](#SENT_EVAL)
+    - [Models](#SENT_MODELS)
+  + [Part-Of-Speech tagging task](#POS)
+    - [Data](#POS_DATA)
+    - [Evaluation](#POS_EVAL)
+    - [Models](#POS_MODELS)
   + [Named Entity Recognition task](#NER)
-    - [Parameters](#NER_PARAMS)
+    - [Data](#NER_DATA)
     - [Evaluation](#NER_EVAL)
-    - [Available Models](#NER_MODELS)
+    - [Models](#NER_MODELS)
 * [Run tasks](#ALL_TASKS) 
-  - [Parameters](#ALL_PARAMS) 
-
-### <a name="STRUCT"></a> Structure 
-
-The repository contains the evaluation scripts. One should create the `data` 
-directory with the corresponding datasets (training, vaidation, and test 
-splits).
-
-The structure of `data` should be the following:
-
-```
---- data
-  |
-   --- pos
-      |
-       --- nob
-           ...
-       --- nno
-           ...
-  
-   --- sentiment
-       |
-        --- no
-            ...
-   --- ner
-       |
-        --- nob
-            ...
-        --- nno
-            ...
-    
-```
-
----
-
-### <a name="POS"></a> Part of Speech Tagging Task
-
-
-For this task, [script](https://github.com/ltgoslo/norbench/evaluation_scripts/pos_finetuning.py) `pos_finetuning.py` should be used.
-
-
-
-#### <a name="POS_PARAMS"></a>  Parameters
-
-The input of the model is:
-
-* `--model_name` - the name of the model with which the user intends to save the output file
-
-* `--short_model_name` - the name of the model can be presented in several ways.
-  +  First: in get_full_model_names, the user can add a convenient abbreviation for the model name (if a specific model is not yet in the list): `mbert`
-  + or the model name can be submitted as a full model name mentioned in the Transformers library: `bert-base-multilingual-cased`
-  + ...or simply as the filesystem path to the model available locally
-
-* `--training_language` - as the POS-tagging task exists for both Norwegian Bokmål and Norwegian Nynorsk,  `nob` or `nno` should be used respectively
-
-* `--epochs` - number of training epochs (`10` by default)
-
-
-#### <a name="POS_EVAL"></a>  Evaluation
-
-Accuracy is used to evaluate this task. 
-The calculation of the metric takes place inside the script, so the user receives a table with the accuracy scores obtained on the validation subset 
-and on the testing data. The table with the output scores is automatically stored in the `results` directory.
-
-#### <a name="POS_MODELS"></a>  Models that have been successfully tested on this script
-
-Currently, this script can work with Bert-Like-Models, DistilBert, and Xlm-Roberta models. and models which are supported by AutoModel.from_pretrained 
-by the Transormers library (for some models, repository with the model files copied to the directory before running).
-
-The use of other models in this benchmark is in the process of being resolved.
-
-The list below describes the models for which it was possible to successfully obtain scores until now:
-
-- mBERT: `bert-base-multilingual-cased`
-- XLM-R: `xlm-roberta-base`
-- NorBERT: `ltgoslo/norbert`
-- NorBERT2: `ltgoslo/norbert2`
-- NB-BERT-Base: `NbAiLab/nb-bert-base`
-- Notram: `NbAiLab/notram-bert-norwegian-uncased-080321`
-- Distilbert: `distilbert-base-uncased` -- there is little sense in using this model, however, an attempt was made to launch 
-- ScandiBERT: `vesteinn/ScandiBERT` -- the repository with the model files has been downloaded to the directory
-- XLM: `xlm-mlm-100-1280` -- RUNNING
-- Bert-Base-En-Fr-De-No-Da-Cased: `Geotrend/bert-base-en-fr-de-no-da-cased` 
-- La/Bse: `La/Bse`
-- Electra-Small-Nordic: `jonfd/electra-small-nordic` -- IN PROGRESS (the repository with the model files has been downloaded to the directory)
-
+   + [Parameters](#ALL_PARAMS) 
+   + [Running scripts. Examples](#ALL_PARAMS_EXP) 
 
 ---
 
@@ -115,78 +30,108 @@ The code and overall discription for the current task can be found [in this repo
 
 ---
 
-### <a name="BINARYSENT"></a> Binary Sentiment Analysis Task
+### <a name="SENT_TASK"></a> Sentiment Analysis Task
 
-For this task, [script](https://github.com/ltgoslo/norbench/evaluation_scripts/sentiment_finetuning.py) `sentiment_finetuning.py` should be used.
+#### Data
 
-#### <a name="BINARYSENT_PARAMS"></a>  Parameters
+1. **Sentence-level.** 
 
-The input of the model is:
+    It's possible to finetune and evaluate 2 types of sentence-level SA: binary (negative and positive reviews only) and 3 classes (negative, neutral and positives). 
 
-* `--model_name` - the name of the model with which the user intends to save the output file
+2. **Document-level.**
 
-* `--short_model_name` - the name of the model can be presented in several ways. 
-  +  Firstly: in get_full_model_names, the user can add a convenient abbreviation for the model name (if a specific model is not yet in the list): `mbert`
-  + or the model name can be submitted as a full model name mentinoed in transformer library: `bert-base-multilingual-cased`
-  
-* `--use_class_weights` - a parameter that determines whether classes will be balanced when the model is running 
-(classes are balanced when a `FALSE` value is passed to the parameter)
-
-* `--training_language` - `no` or any other subdirectory in `data/sentiment/`
-
-* `--epochs` - number of trainable epochs (`10` as default)
+    While the reviews originally come with numerical ratings on a scale of 1–6, we here conflate these to three classes; negative (1–3), fair (4), and positive (5–6). This mapping is done to avoid problems with too few examples for the ratings in the extreme ends of the numerical scale. The dataset comes with predefined datasplits (chronologically sorted). More information about project you an fine on the website of [University of Oslo](https://www.mn.uio.no/ifi/english/research/projects/sant/).
 
 
-#### <a name="BINARYSENT_EVAL"></a>  Evaluation
+Please specify **--task_specific_info** argument as required:
+- **'sentence_2'** if you want to finetune/evaluate binary sentence-level SA.
+- **'sentence_3'** if you want to finetune/evaluate 3 classes sentence-level SA.
+- **'document_3'** if you want to finetune/evaluate 3 classes document-level SA.
+- **'other'** if you want to finetune/evaluate on your own data and not NoReC datasets. In this case ```--data_path``` argument has to be specified.
 
-F1 score is used to evaluate this task. 
-The calculation of the metric takes place inside the script, so the user receives the table with the F1 scores obtained on the validation subset and on the testing data. 
-The table with output scores is automatically stored in the `results` directory.
 
-#### <a name="BINARYSENT_MODELS"></a>  Models that have been successfully tested on this script
+#### Evaluation
+Please specify `--data_path` argument only if you want to use your own datasets. In this case provide a path to folder with train.csv, dev.csv and test.csv. Datasets should contain columns 'review' with texts and 'sentiment' with labels. If you want to use sentence or document level datasets no need to specify this argument. Data downloads automatically (only once) from github repos and creates a folder with train, test and dev that are used in further experiments. Hence, when ```--task_specific_info``` is not 'other' datasets will be created automatically. 
 
-Currently, this script can work with Bert-Like-Models, DistilBert, Xlm-Roberta models and models which are supported by AutoModel.from_pretrained 
-by the Transformers library (for some models repository with the model files should be copied to the directory before running).
+There are additional arguments possible but not required for this task:
+<ul>
+  <li>--learning_rate</li>
+  <li>--max_length</li>
+  <li>--batch_size</li>
+  <li>--epochs</li>
+</ul>
 
-The use of other models in this benchmark is in the process of being resolved.
+#### Models
 
-The list below describes the models for which it was possible to successfully obtain scores until now:
+It's possible to use different architectures for fine-tuning/evaluating sentiment analysis:
 
-- mBERT: `bert-base-multilingual-cased`
-- XLM-R: `xlm-roberta-base`
-- NorBERT: `ltgoslo/norbert`
-- NorBERT2: `ltgoslo/norbert2`
-- NB-BERT-Base: `NbAiLab/nb-bert-base`
-- Notram: `NbAiLab/notram-bert-norwegian-uncased-080321`
-- XLM: `xlm-mlm-100-1280` -- was selected to test the possibility of launching via AutoModels
-- Distilbert: `distilbert-base-uncased` -- there is little sense in using this model, however, an attempt was made to launch 
-- ScandiBERT: `vesteinn/ScandiBERT` -- the repository with the model files has been downloaded to the directory
-- XLM: `xlm-mlm-100-1280`
-- Bert-Base-En-Fr-De-No-Da-Cased: `Geotrend/bert-base-en-fr-de-no-da-cased` 
-- La/Bse: `La/Bse` -- IN PROGRESSS
-- Electra-Small-Nordic: `jonfd/electra-small-nordic` -- IN PROGRESS (the repository with the model files has been downloaded to the directory)
+- Masked language models
+- Custom wrappers
+- T5
+
+If you want to use a custom wrapper please specify ```-custom_wrapper``` as True (it's False by default) and ```-path_to_model``` as absolute(!) path to folder with your model.
+For any other model you can provide a path to HuggingFace model in ```-path_to_model```.
+
+---
+
+### <a name="POS"></a> Part of Speech Tagging Task
+
+
+#### Data
+
+To solve Part-of-speech tagging task, collected datasets for several languages can be used. Links to each of them with detailed information provided below:
+
+* [Bokmaal](https://github.com/UniversalDependencies/UD_Norwegian-Bokmaal)
+* [Nynorsk](https://github.com/UniversalDependencies/UD_Norwegian-Nynorsk)
+* [NynorskLIA](https://github.com/UniversalDependencies/UD_Norwegian-NynorskLIA)
+
+
+#### <a name="POS_EVAL"></a>  Evaluation
+
+Accuracy is used to evaluate this task. 
+The calculation of the metric takes place inside the script, so the user receives a table with the accuracy scores obtained on the validation subset 
+and on the testing data. The table with the output scores is automatically stored in the `results` directory.
+
+There are additional arguments possible but not required for this task (they are set by default):
+<ul>
+  <li>--learning_rate</li>
+  <li>--max_length</li>
+  <li>--batch_size</li>
+  <li>--eval_batch_size</li>
+  <li>--epochs</li>
+</ul>
+
+#### Models
+
+For the Part-of-speech tagging task, models of different architectures for fine-tuning/evaluating can be used:
+
+- Masked language models
+- T5
 
 ---
 
 ### <a name="NER"></a> Named Entity Recognition Task
 
-For this task, [script](https://github.com/ltgoslo/norbench/evaluation_scripts/ner_finetuning.py) `ner_finetuning.py` should be used.
+#### Data
 
-#### <a name="NER_PARAMS"></a>  Parameters
+To detect named entities, datasets for several Norwegian languages were used: for Bokmaal and Nynorsk.
 
-The input of the model is: 
+The classes provided below have been allocated for the token classification.
+Each token is assigned to a tag according to the appropriate entity.
+In the case when one entity marks several consecutive tokens, the first entity tag is assigned a token with the prefix B-, and the rest of the tokens for marked entity - with prefix I
 
+* *O* - No entity
+* *PER* - Person
+* *LOC* - Location
+* *PROD* - Product
+* *GPE_LOC* -  Geo-political entity + locative sense
+* *DRV* - Derived
+* *EVT* - Event
+* *ORG* - Organisation
+* *GPE_ORG* - Geo-political entity + organisation sense
+* *MISC* - Miscellaneous
 
-* `--model_name` - the name of the model can be presented in several ways.
-  +  in get_full_model_names, the user can add a convenient abbreviation for the model name (if a specific model is not yet in the list): `xlm-roberta`
-  + the model name can be submitted as a full model name mentioned in the Transformers library: `xlm-roberta-base`
-* `--run_model_name` - the name of the model with which the user intends to save the output file
-* `--training_language` - as NER task exists for both Norwegian Bokmål and Norwegian Nynorsk, `nob` or `nno` should be used respectively
-* `--epochs` - number of trainable epochs (`20` by default)
-* `--use_seqeval_evaluation` - boolean variable indicating whether to use the seqeval metric during validation (False by default)
-* `--model_type` - optional argument (type of the model that one wants to run (`bert`, `roberta`)), 
-however, if the user type does not know the model type, the decision will be made automatically, so one can skip this argument
-
+You can find detailed information about the data and classes on the website of the [original project](https://github.com/ltgoslo/norne)
 
 #### <a name="NER_EVAL"></a>  Evaluation
 
@@ -198,29 +143,24 @@ NOTE: for the current task not F1 score itself is used (not the original metric)
 A special [script](https://github.com/ltgoslo/norbench/evaluation_scripts/ner_eval.py) is used to get the result on the test set 
 where scores are counted for provided labels: `PER`, `ORG`, `LOC`, `GPE_LOC`, `GPE_ORG`, `PROD`, `EVT`, `DRV`. 
 
+There are additional arguments possible but not required for this task (they are set by default):
+<ul>
+  <li>--use_seqeval_evaluation</li>
+  <li>--learning_rate</li>
+  <li>--max_length</li>
+  <li>--batch_size</li>
+  <li>--eval_batch_size</li>
+  <li>--epochs</li>
+</ul>
 
-#### <a name="NER_MODELS"></a>  Models that have been successfully tested on this script
+#### Models
 
-Currently, this script can work with Bert-Like-Models, DistilBert, Xlm-Roberta models and models which are supported by AutoModel.from_pretrained 
-by the Transformers library (for some models, repository with the model files should be copied to the directory before running).
+For the NER task, models of different architectures for fine-tuning/evaluating can be used:
 
-The use of other models in this benchmark is in the process of being resolved.
+- Masked language models
+- T5
 
-The list below describes the models for which it was possible to successfully obtain scores until now:
-
-- mBERT: `bert-base-multilingual-cased`
-- XLM-R: `xlm-roberta-base`
-- NorBERT: `ltgoslo/norbert`
-- NorBERT2: `ltgoslo/norbert2`
-- NB-BERT-Base: `NbAiLab/nb-bert-base`
-- Notram: `NbAiLab/notram-bert-norwegian-uncased-080321` -- IN PROGRESS 
-- XLM: `xlm-mlm-100-1280` -- IN PROGRESS was selected to test the possibility of launching via AutoModels
-- Distilbert: `distilbert-base-uncased` -- IN PROGRESS there is little sense in using this model, however, an attempt was made to launch 
-- ScandiBERT: `vesteinn/ScandiBERT` -- the repository with the model files has been downloaded to the directory
-- XLM: `xlm-mlm-100-1280`
-- Bert-Base-En-Fr-De-No-Da-Cased: `Geotrend/bert-base-en-fr-de-no-da-cased` 
-- La/Bse: `La/Bse`
-- Electra-Small-Nordic: `jonfd/electra-small-nordic` --  the repository with the model files has been downloaded to the directory
+---
 
 ### <a name="ALL_TASKS"></a> Run tasks
 To run benchmark tasks `norbench_run.py` should be used.
@@ -231,17 +171,17 @@ The current script provides the ability to run all benchmark tasks (that were me
 
 * `--task` - the name of the task: pos/ner/sentiment/all should be used. If nothing was entered by user, all tasks will be run
 
-* `--task_specific_info` - Name of a sub-task. For origianl datasets name of language (Bokmaal \ Nynorsk \ NynorskLIA (for pos-tagging)) or type of classification (binary / 3class) could be used.
+* `--task_specific_info` - Name of a sub-task. For origianl datasets name of language (e.g. Bokmaal \ Nynorsk \ NynorskLIA - for pos-tagging) or type of classification (sentence_2 / document_3) could be used.
 
 * `--path_to_dataset` - path to the folder with data for current task. If 'ner' was chosen as a task, folder with the corresponding dataset should be entered. If one wants to run all benchmark tasks, there are other arguments that are more suitable for this (mentioned below). If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
 * `--download_cur_data` - Current argument provides user to download the original datasets from github and use original dataset if it has been already downloaded: True if downloading is needed (False as default).
 
-* `--path_to_dataset_pos` - path to the folder with data for pos task if 'all' in task was used. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
+* `--path_to_dataset_pos` - path to the folder with data for pos task if 'all' in task was used. Should be used if user wants to run task on datasets other than original ones. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
-* `--path_to_dataset_ner` - path to the folder with data for ner task if 'all' in task was used. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
+* `--path_to_dataset_ner` - path to the folder with data for ner task if 'all' in task was used. Should be used if user wants to run task on datasets other than original ones. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
-* `--path_to_dataset_sent` - path to the folder with data for binary sentiment task if 'all' in task was used. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
+* `--path_to_dataset_sent` - path to the folder with data for binary sentiment task if 'all' in task was used. Should be used if user wants to run task on datasets other than original ones. If path to the folder with data is empty, original datasets will be downloaded and used automatically.
 
 * `--model_name` - Name of the model that will be used as an identifier for checkpoints.
 
@@ -254,12 +194,33 @@ The current script provides the ability to run all benchmark tasks (that were me
 
 * `--do_train` - True if model will be trained from scratch. Train, evaluation and test will be run.
 
-* `--class_balanced_for_sent` -  a parameter that determines whether classes will be balanced when the model is running 
-(classes are balanced when a `True` value is passed to the parameter)
-
+* `--custom_wrapper` -  a parameter that determines if custom wrapper should be specified (False by default). For the current moment this option is available for sentiment task (ref. Sentiment Analysis Task for more information).
 * `--use_seqeval_evaluation_for_ner` -  boolean variable indicating whether to use the seqeval metric during validation
-
 * `--epochs` -  number of training epochs (`10` by default)
+* `--max_length` - max length for the texts
+* `--batch_size` - size of batch for the training loop
+* `--eval_batch_size` - size of batch for evaluation 
+* `--learning_rate` - learning rate
+    
+ 
+A general launch option is provided below
+
+```
+  python3 ./norbench/evaluation_scripts/norbench_run.py
+  
+      --task {TASK_NAME}
+      --task_specific_info {INFO_FORTHE_CURRENT_TASK}
+      --model_name {MODEL_NAME_FOR_CHECKPOINTS}
+      --path_to_model {PATH_TO_MODEL}
+      --path_to_dataset {PATH_TO_FOLDER_WITH_DATA}
+      --download_cur_data {DOWNLOAD_RELEVANT_DATA}
+      --epochs {EPOCHS}
+      --max_length {MAX_LENGTH}
+      --batch_size {BATCH_SIZE}
+      --eval_batch_size {EVAL_BATCH_SIZE}
+      --learning_rate {LEARNING_RATE}
+```
+
 
 #### <a name="Overall_Run"></a> Running scripts. Examples
 
@@ -311,3 +272,5 @@ The current script provides the ability to run all benchmark tasks (that were me
     ```
     python3 ./norbench/evaluation_scripts/norbench_run.py --path_to_model all --task all
     ```
+    
+
