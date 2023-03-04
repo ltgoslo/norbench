@@ -17,8 +17,7 @@ def labels_6_to_3(df):
     
     return df
 
-
-def labels_to_names_document(labels):
+def labels_to_names(labels):
 
     mapping = {
         0:'Negative',
@@ -30,28 +29,16 @@ def labels_to_names_document(labels):
     return new_labels
 
 
-def labels_to_names_sent2(labels):
-
-    mapping = {
-        0:'Negative',
-        1:'Positive',
-    }
-    new_labels = [mapping[label] for label in labels]
-
-    return new_labels
-
-def labels_to_names_sent3(labels):
+def labels_to_names_sentence(labels):
 
     mapping = {
         0:'Negative',
         1:'Neutral',
-        2:'Positive',
+        2:'Positive'
     }
     new_labels = [mapping[label] for label in labels]
 
     return new_labels
-
-
 
 def get_text(path: str) -> str:
 
@@ -85,70 +72,66 @@ def create_dataframe_sentence(path):
     df['review'] = texts
     return df
 
+def find_csv(path):
+    needed_csv = ['train.csv', 'test.csv', 'dev.csv']
+    for csv in needed_csv:
+        if not os.path.isfile(os.path.join(path,csv)):
+            print('Could not find train.csv, test.csv or dev.csv in your diectory!')
+            return None
+
+    df_train = pd.read_csv(os.path.join(path,'train.csv'))
+    df_val = pd.read_csv(os.path.join(path,'test.csv'))
+    df_test = pd.read_csv(os.path.join(path,'dev.csv'))
+
+    return df_train, df_val, df_test
+
 # level: sentence or document
-def load_data(level:str, classification:int):
+def load_data(level):
     
     if level == 'document':    
         norec_document_link = 'https://github.com/ltgoslo/norec'
-        if not os.path.exists('data/sentiment/norec/'):
-            Repo.clone_from(norec_document_link, 'data/sentiment/norec/')
-        path = 'data/sentiment/norec/data'
+        if not os.path.exists('data/norec/'):
+            Repo.clone_from(norec_document_link, 'data/norec')
+        path = 'data/norec/data'
 
-        metadata = pd.read_json(os.path.join(path, "metadata.json"), encoding='utf-8')
-        data = metadata.T[['id', 'rating']]
-        data['txt_names'] = ['0'*(6-len(str(id))) + str(id) + '.txt' for id in data['id']]
-        texts = []
-        splits = []
+        
+        train = pd.DataFrame(columns=['review', 'sentiment'])
+        test = pd.DataFrame(columns=['review', 'sentiment'])
+        dev = pd.DataFrame(columns=['review', 'sentiment'])
 
-        for root, _, files in os.walk(path, topdown=False):
-            for name in files:
-                path_text = os.path.join(root, name)
-                if path_text.endswith('.txt'):
-                        texts.append(get_text(path_text))
-                        splits.append(path_text.split('/')[-2])
+        with open(os.path.join(path, "metadata.json"), 'r') as js:
+            metadata = json.load(js)
 
-        data['text'] = texts
-        data['split'] = splits
-        data = data.rename(columns={"rating": "sentiment", 'text':'review'}, errors="raise")
-        data['sentiment'] = [x-1 for x in data['sentiment']]
+        for k,v in metadata.items():
+            split = v['split']
+            review = get_text(os.path.join(path, f"{split}/{k}.txt"))
+            sentiment = int(v['rating'])-1
+            if split == 'train':
+                train = train.append({'review':review, 'sentiment':sentiment },ignore_index=True)
+            if split == 'test':
+                test = test.append({'review':review, 'sentiment':sentiment }, ignore_index=True)
+            if split == 'dev':
+                dev = dev.append({'review':review, 'sentiment':sentiment },ignore_index=True)
 
-        train = data[data.split == 'train']
-        dev = data[data.split == 'dev']
-        test = data[data.split == 'test']
-
-        pathlib.Path('data/sentiment/document').mkdir(parents=True, exist_ok=True)
-        train[['sentiment', 'review']].to_csv('data/sentiment/document/train.csv', index=False)
-        dev[['sentiment', 'review']].to_csv('data/sentiment/document/dev.csv', index=False)
-        test[['sentiment', 'review']].to_csv('data/sentiment/document/test.csv', index=False)
+        pathlib.Path('./data/document').mkdir(parents=True, exist_ok=True)
+        train[['sentiment', 'review']].to_csv('data/document/train.csv', index=False)
+        dev[['sentiment', 'review']].to_csv('data/document/dev.csv', index=False)
+        test[['sentiment', 'review']].to_csv('data/document/test.csv', index=False)
     
     if level == 'sentence':
         norec_sentence_link = 'https://github.com/ltgoslo/norec_sentence'
-        if not os.path.exists('data/sentiment/norec_sentence/'):
-            Repo.clone_from(norec_sentence_link, 'data/sentiment/norec_sentence/')
+        if not os.path.exists('data/norec_sentence/3class/'):
+            Repo.clone_from(norec_sentence_link, 'data/norec_sentence')
+        path = 'data/norec_sentence/3class/'
         
-        if classification == 3:
-            path = 'data/sentiment/norec_sentence/3class/'
-            
-            train = create_dataframe_sentence(os.path.join(path, "train.json"))
-            dev = create_dataframe_sentence(os.path.join(path, "dev.json"))
-            test = create_dataframe_sentence(os.path.join(path, "test.json"))
-            
-            pathlib.Path('data/sentiment/sentence/3class').mkdir(parents=True, exist_ok=True)
-            train.to_csv('data/sentiment/sentence/3class/train.csv', index=False)
-            dev.to_csv('data/sentiment/sentence/3class/dev.csv', index=False)
-            test.to_csv('data/sentiment/sentence/3class/test.csv', index=False)
+        train = create_dataframe_sentence(os.path.join(path, "train.json"))
+        dev = create_dataframe_sentence(os.path.join(path, "dev.json"))
+        test = create_dataframe_sentence(os.path.join(path, "test.json"))
         
-        if classification == 2:
-            path = 'data/sentiment/norec_sentence/binary/'
-            
-            train = create_dataframe_sentence(os.path.join(path, "train.json"))
-            dev = create_dataframe_sentence(os.path.join(path, "dev.json"))
-            test = create_dataframe_sentence(os.path.join(path, "test.json"))
-            
-            pathlib.Path('data/sentiment/sentence/2class').mkdir(parents=True, exist_ok=True)
-            train.to_csv('data/sentiment/sentence/2class/train.csv', index=False)
-            dev.to_csv('data/sentiment/sentence/2class/dev.csv', index=False)
-            test.to_csv('data/sentiment/sentence/2class/test.csv', index=False)
+        pathlib.Path('./data/sentence').mkdir(parents=True, exist_ok=True)
+        train.to_csv('data/sentence/train.csv', index=False)
+        dev.to_csv('data/sentence/dev.csv', index=False)
+        test.to_csv('data/sentence/test.csv', index=False)
     
     return train, dev, test
 
@@ -195,11 +178,3 @@ def create_data_loader(df, tokenizer, max_len, batch_size):
     batch_size=batch_size
   )
 
-
-def find_csv(path):
-
-    df_train = pd.read_csv(os.path.join(path,'train.csv'))
-    df_val = pd.read_csv(os.path.join(path,'test.csv'))
-    df_test = pd.read_csv(os.path.join(path,'dev.csv'))
-
-    return df_train, df_val, df_test
