@@ -1,4 +1,4 @@
-from transformers import  AutoModel, AutoTokenizer, AutoModelForSequenceClassification, get_linear_schedule_with_warmup, T5ForConditionalGeneration
+from transformers import  AutoTokenizer, AutoModelForSequenceClassification, get_linear_schedule_with_warmup, T5ForConditionalGeneration
 from sklearn.metrics import  classification_report, f1_score, accuracy_score
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
@@ -6,39 +6,57 @@ from argparse import ArgumentParser
 from torch import nn
 from utils.utils_sentiment_t5 import *
 from utils.utils_sentiment import *
-from utils.model_utils import get_full_model_names
 import pandas as pd
 import numpy as np
 import warnings
+import datetime
 import pathlib
+import logging
+import random
 import torch
-import time
-import sys 
+import sys
 import os
+import tqdm
 
-
-from transformers import logging
-logging.set_verbosity_warning()
+logging.basicConfig(
+    format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+def seed_everything(seed_value=42):
+    os.environ['PYTHONHASHSEED'] = str(seed_value)
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed_all(seed_value)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 ### THE BEGGINING OF IMPLEMENTATION OF ANY MODEL OTHER THAN T5
 ### =========================================================================================================
 
 class SentimentClassifier(nn.Module):
 
-  def __init__(self, n_classes, custom_wrapper, path_to_model):
+  def __init__(self, n_classes, custom_wrapper, model_identifier):
     super(SentimentClassifier, self).__init__()
 
     if not custom_wrapper:
-      print('You are using a model from HuggingFace.')
-      self.bert = AutoModelForSequenceClassification.from_pretrained(path_to_model, num_labels=n_classes, ignore_mismatched_sizes=True)
+      logger.info('You are using a model from HuggingFace.')
+      self.bert = AutoModelForSequenceClassification.from_pretrained(model_identifier,
+                                                                     num_labels=n_classes,
+                                                                     ignore_mismatched_sizes=True)
     if custom_wrapper:
-      print('You are using a custom wrapper, NOT a HuggingFace model.')
+      logger.info('You are using a custom wrapper, NOT a HuggingFace model.')
 
-      sys.path.append(path_to_model)
+      sys.path.append(model_identifier)
       from modeling_norbert import NorbertForSequenceClassification
-      self.bert = NorbertForSequenceClassification.from_pretrained(path_to_model, num_labels=n_classes, ignore_mismatched_sizes=True)
+      self.bert = NorbertForSequenceClassification.from_pretrained(model_identifier, num_labels=n_classes,
+                                                                   ignore_mismatched_sizes=True)
 
   def forward(self, input_ids, attention_mask):
 
@@ -51,6 +69,7 @@ class SentimentClassifier(nn.Module):
     logits = bert_output.logits
 
     return logits
+
 
 def train_epoch(
   model,
@@ -67,7 +86,7 @@ def train_epoch(
   losses = []
   correct_predictions = 0
   
-  for d in data_loader:
+  for d in tqdm.tqdm(data_loader):
     input_ids = d["input_ids"].to(device)
     attention_mask = d["attention_mask"].to(device)
     targets = d["targets"].to(device)
@@ -77,7 +96,7 @@ def train_epoch(
       attention_mask=attention_mask
     )
     preds_idxs = torch.max(outputs, dim=1).indices
-    y_pred += preds_idxs.numpy().tolist()
+    y_pred += preds_idxs.cpu().numpy().tolist()
     loss = loss_fn(outputs, targets)
     correct_predictions += torch.sum(preds_idxs == targets)
 
@@ -92,7 +111,8 @@ def train_epoch(
   return correct_predictions.double() / n_examples, np.mean(losses), f1
 
 
-def eval_model(model, data_loader, loss_fn, device, n_examples,level, classification):
+def eval_model(model, data_loader, loss_fn, device, n_examples, level):
+  pred_df = pd.DataFrame(columns=['true','pred'])
   model = model.eval()
   losses = []
   correct_predictions = 0
@@ -114,47 +134,49 @@ def eval_model(model, data_loader, loss_fn, device, n_examples,level, classifica
       losses.append(loss.item())
   f1 = f1_score(y_true, y_pred, average='macro')
   if level == 'document':
-    report = classification_report(labels_to_names_document(y_true), labels_to_names_document(y_pred))
+    report = classification_report(labels_to_names(y_true), labels_to_names(y_pred))
+    pred_df['true'] = labels_to_names(y_true)
+    pred_df['pred'] = labels_to_names(y_pred)
   if level == 'sentence':
-    if classification == 2:
-        report = classification_report(labels_to_names_sent2(y_true), labels_to_names_sent2(y_pred))
-    if classification == 3:
-        report = classification_report(labels_to_names_sent3(y_true), labels_to_names_sent3(y_pred))
+    report = classification_report(labels_to_names_sentence(y_true), labels_to_names_sentence(y_pred))
+    pred_df['true'] = labels_to_names_sentence(y_true)
+    pred_df['pred'] = labels_to_names_sentence(y_pred)
+  if level == 'other':
+    report = classification_report(y_true, y_pred)
+    pred_df['true'] = y_true
+    pred_df['pred'] = y_pred
+  return correct_predictions.double() / n_examples, np.mean(losses), f1, report, pred_df
 
-  return correct_predictions.double() / n_examples, np.mean(losses), f1, report
+
+def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed):
+
+    logger.info(f'Train samples: {len(df_train)}')
+    logger.info(f'Validation samples: {len(df_val)}')
+    logger.info(f'Test samples: {len(df_test)}')
 
 
-
-
-def training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification):
-
-    lr = int(lr)
-    max_length = int(max_length)
-    batch_size = int(batch_size)
-    epochs = int(epochs)
-
-    tokenizer = AutoTokenizer.from_pretrained(path_to_model)
+    tokenizer = AutoTokenizer.from_pretrained(model_identifier)
     train_data_loader = create_data_loader(df_train, tokenizer, max_length, batch_size)
     val_data_loader = create_data_loader(df_val, tokenizer, max_length, batch_size)
     test_data_loader = create_data_loader(df_test, tokenizer, max_length, batch_size)
 
     class_names = df_train.sentiment.unique()
-    model = SentimentClassifier(len(class_names), custom_wrapper, path_to_model)
+    model = SentimentClassifier(len(class_names), custom_wrapper, model_identifier)
     model = model.to(device)
 
     loss_fn = nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=float(lr))
+    optimizer = torch.optim.AdamW(model.parameters(), lr=float(learning_rate))
     total_steps = len(train_data_loader) * epochs
     scheduler = get_linear_schedule_with_warmup(
                 optimizer,
-                num_warmup_steps=int(2),
+                num_warmup_steps=2,
                 num_training_steps=total_steps
                 )
     
     best_valid_f1 = float('-inf')
 
     for epoch in range(epochs):
-        print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
+        logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
         train_acc, train_loss, train_f1 = train_epoch(
             model,
             train_data_loader,
@@ -164,59 +186,54 @@ def training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_len
             scheduler,
             len(df_train)
         )
-        print()
-        print(f'Train loss -- {train_loss} -- accuracy {train_acc} -- f1 {train_f1}')
+        logger.info(f'Train loss -- {train_loss} -- accuracy {train_acc} -- f1 {train_f1}')
 
         val_scores = []
-        val_acc, val_loss, val_f1, report = eval_model(
+        val_acc, val_loss, val_f1, report, _ = eval_model(
             model,
             val_data_loader,
             loss_fn,
             device,
             len(df_val),
-            level,
-            classification
+            level
         )
-        print()
-        print(f'Val loss {val_loss} -- accuracy -- {val_acc} -- f1 {val_f1}')
-        print()
-        print(report)
+        logger.info(f'Val loss {val_loss} -- accuracy -- {val_acc} -- f1 {val_f1}')
+        logger.info(report)
 
         val_scores.append(val_f1)
-        if best_valid_f1 < val_f1:
+        if best_valid_f1 <= val_f1:
             best_valid_f1 = val_f1
             # save best model
-            model_name = path_to_model.split('/')[-1] if path_to_model.split('/')[-1] != '' else path_to_model.split('/')[-2]
-            pathlib.Path(f'checkpoints/{level}_{classification}_classes').mkdir(parents=True, exist_ok=True)  
-            torch.save(model.state_dict(),f'checkpoints/{level}_{classification}_classes/{model_name}.bin')
+            pathlib.Path('./saved_models').mkdir(parents=True, exist_ok=True)  
+            torch.save(model.state_dict(),f'saved_models/{run_name}.bin')
+        if best_valid_f1 > val_f1:
+            break
 
-    test_acc, test_loss, test_f1, test_report = eval_model(
+    logger.info('-------------TESTINGS-----------------')
+    model = SentimentClassifier(len(class_names), custom_wrapper, model_identifier)
+    model.load_state_dict(torch.load(f'saved_models/{run_name}.bin'))
+    test_acc, test_loss, test_f1, test_report, pred_df = eval_model(
                                                 model,
                                                 test_data_loader,
                                                 loss_fn,
                                                 device,
                                                 len(df_test),
-                                                level,
-                                                classification
+                                                level
                                             )
 
-
-    print()
-    print('-------------TESTINGS-----------------')
-    print()
-    print(f'Test accuracy {test_acc}, f1 {test_f1}')
-    print()
-    print(test_report)
-
-    avg_val_f1, avg_test_f1 = max(val_scores), test_f1
-    return avg_val_f1, avg_test_f1
-
+    pathlib.Path('./test_predictions').mkdir(parents=True, exist_ok=True) 
+    pred_df = pred_df.assign(text=df_test.review)
+    pred_df.to_csv(f'./test_predictions/{run_name}.csv')
+    logger.info(f'Test accuracy {test_acc}, f1 {test_f1}')
+    logger.info(test_report)
+    print(f"{datetime.datetime.now()}\t{seed}\t{test_acc:.4f}\t{test_f1:.4f}")
+    return best_valid_f1, test_f1
 
 
 ### THE BEGGINING OF T5 MODEL IMPLEMENTATION
 ### =========================================================================================================
 
-def train(model, dataloader, optimizer, scaler, scheduler, tokenizer, device):
+def train(model, dataloader, optimizer, scaler, scheduler, tokenizer):
 
     # reset total loss for epoch
     train_total_loss = 0
@@ -230,7 +247,7 @@ def train(model, dataloader, optimizer, scaler, scheduler, tokenizer, device):
     # put model into traning mode
     model.train()
     # for each batch of training data...
-    for _, data in enumerate(dataloader, 0):
+    for _, data in tqdm.tqdm(enumerate(dataloader, 0)):
 
         b_input_ids = data["source_ids"].to(device)
         b_input_mask = data["source_mask"].to(device)
@@ -281,7 +298,7 @@ def train(model, dataloader, optimizer, scaler, scheduler, tokenizer, device):
     return avg_train_loss, avg_train_acc, avg_train_f1
 
 
-def validating(model, dataloader, tokenizer, device):
+def validating(model, dataloader, tokenizer):
 
     # After the completion of each training epoch, measure our performance on
     # our validation set
@@ -332,10 +349,6 @@ def validating(model, dataloader, tokenizer, device):
             predictions.extend(preds)
             actuals.extend(target)
 
-    pred_df['true'] = actuals
-    pred_df['pred'] = predictions
-    #pred_df.to_csv('valid_preds.csv')
-
     # calculate the average loss over all of the batches.
     avg_valid_loss = total_valid_loss / len(dataloader)
     avg_valid_acc = total_valid_acc / len(dataloader)
@@ -343,12 +356,11 @@ def validating(model, dataloader, tokenizer, device):
 
     return avg_valid_loss, avg_valid_acc, avg_valid_f1
 
-
-def testing(model, dataloader, tokenizer,test_dataset, device):
+def testing(model, dataloader, tokenizer,test_dataset):
 
     # put the model in evaluation mode
     model.eval()
-
+    
     pred_df = pd.DataFrame(columns=['true','pred'])
 
     # track variables
@@ -395,28 +407,21 @@ def testing(model, dataloader, tokenizer,test_dataset, device):
 
     pred_df['true'] = actuals
     pred_df['pred'] = predictions
-    #pred_df.to_csv('test_preds.csv')
 
     # calculate the average loss over all of the batches.
     avg_test_loss = total_test_loss / len(dataloader)
     avg_test_acc = total_test_acc / len(test_dataset)
     avg_test_f1 = total_test_f1 / len(test_dataset)
 
-    return avg_test_loss, avg_test_acc, avg_test_f1
+    return avg_test_loss, avg_test_acc, avg_test_f1, pred_df
 
+def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, seed):
 
-def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification):
+    logger.info(f'Train samples: {len(df_train)}')
+    logger.info(f'Validation samples: {len(df_val)}')
+    logger.info(f'Test samples: {len(df_test)}')
 
-    lr = int(lr)
-    max_length = int(max_length)
-    batch_size = int(batch_size)
-    epochs = int(epochs)
-
-    tokenizer = AutoTokenizer.from_pretrained(path_to_model)
-
-   #########!!!!!!!!!!
-    #target_len = classification
-    #########!!!!!!!!!!
+    tokenizer = AutoTokenizer.from_pretrained(model_identifier)
 
     train_loader = load_dataset(df_train, tokenizer, max_length=max_length, target_len=3, level=level)
     dev_loader = load_dataset(df_val, tokenizer, max_length=max_length, target_len=3, level=level)
@@ -426,15 +431,18 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
     val_dataset = DataLoader(dev_loader, batch_size=int(batch_size), shuffle=False)
     test_dataset = DataLoader(test_loader, batch_size=int(batch_size), shuffle=False)
 
-    model = T5ForConditionalGeneration.from_pretrained(path_to_model).to(device)
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(),
-                    lr = float(lr)
+                    lr = float(learning_rate)
                     )
+    # epochs
+    epochs = int(epochs)
     # lr scheduler
     total_steps = len(train_dataset) * epochs
     scheduler = get_linear_schedule_with_warmup(optimizer,
-                                                num_warmup_steps= int(2),
+                                                num_warmup_steps= 2,
                                                 num_training_steps=total_steps)
     # create gradient scaler for mixed precision
     scaler = GradScaler()
@@ -443,7 +451,7 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
     best_valid_loss = float('-inf')
 
     for epoch in range(epochs):
-        print(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
+        logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
         
         # train
         avg_train_loss, avg_train_acc, avg_train_f1 = train(model,
@@ -451,100 +459,81 @@ def training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epo
                     optimizer,
                     scaler,
                     scheduler,
-                    tokenizer,
-                    device)
+                    tokenizer)
 
-        print()
-        print(f'Train loss -- {avg_train_loss} -- accuracy {avg_train_acc} -- f1 {avg_train_f1}')
-        print()
+        logger.info(f'Train loss -- {avg_train_loss} -- accuracy {avg_train_acc} -- f1 {avg_train_f1}')
 
         # validate
-        avg_valid_loss, avg_valid_acc, avg_valid_f1 = validating(model, val_dataset, tokenizer, device)
-        print(f'Validation loss -- {avg_valid_loss} -- accuracy {avg_valid_acc} -- f1 {avg_valid_f1}')
-        print()
+        avg_valid_loss, avg_valid_acc, avg_valid_f1 = validating(model, val_dataset, tokenizer)
+        logger.info(f'Validation loss -- {avg_valid_loss} -- accuracy {avg_valid_acc} -- f1 {avg_valid_f1}')
         valid_losses.append(avg_valid_loss)
-
         # check validation loss
-        if valid_losses[epoch] > best_valid_loss:
+        if valid_losses[epoch] >= best_valid_loss:
             best_valid_loss = valid_losses[epoch]
             # save best model for use later
-            model_name = path_to_model.split('/')[-1] if path_to_model.split('/')[-1] != '' else path_to_model.split('/')[-2]
-            pathlib.Path(f'checkpoints/{level}_{classification}_classes').mkdir(parents=True, exist_ok=True)  
-            torch.save(model.state_dict(),f'checkpoints/{level}_{classification}_classes/{model_name}.pt')
+            pathlib.Path('./saved_models').mkdir(parents=True, exist_ok=True)  
+            torch.save(model.state_dict(),f'saved_models/{run_name}.pt')
+        else: 
+            break
+        
 
     # TEST 
-    print()
-    print('-------------TESTINGS-----------------')
-    print()
-    avg_test_loss, avg_test_acc, avg_test_f1 = testing(model, test_dataset, tokenizer, test_dataset, device)
-    print(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
-
-    return  max(valid_losses), avg_test_f1
+    logger.info('-------------TESTINGS-----------------')
+    model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+    model.load_state_dict(torch.load(f'./saved_models/{run_name}.pt'))
+    avg_test_loss, avg_test_acc, avg_test_f1, pred_df = testing(model, test_dataset, tokenizer, test_dataset)
+    
+    pathlib.Path('./test_predictions').mkdir(parents=True, exist_ok=True) 
+    pred_df = pred_df.assign(text=df_test.review)
+    pred_df.to_csv(f'./test_predictions/{run_name}.csv')
+    logger.info(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
+    return best_valid_loss, avg_test_f1
 
 
 ### General training and evaluating function
 ### =========================================================================================================
 
-
-# DONT FORGET TO CHANGE ARGUMENTS AND DELETE DF REDUCTION!!!!
-def training_evaluating(task_specific_info:str, path_to_model_prev:str, custom_wrapper:False, lr=1e-05, max_length=64, batch_size=4, epochs=1):
-    
-    try:
-        path_to_model = get_full_model_names(path_to_model_prev)
-    except:
-        path_to_model = path_to_model_prev
-
-    level, classification = task_specific_info.split('_')
-    classification = int(classification)
-
-    if level == 'sentence':
-        print('You are finetuning sentence-level SA!')
-
-        if classification == 2:
-            if os.path.exists('data/sentiment/sentence/2class'):
-                df_train, df_val, df_test = find_csv('data/sentiment/sentence/2class')
-            else:
-                df_train, df_val, df_test = load_data('sentence', classification)
-            df_train['sentiment'] = df_train.sentiment.replace(2,1)
-            df_val['sentiment'] = df_val.sentiment.replace(2,1)
-            df_test['sentiment'] = df_test.sentiment.replace(2,1)
-            
-        if classification == 3:
-            if os.path.exists('data/sentiment/sentence/3class'):
-                df_train, df_val, df_test = find_csv('data/sentiment/sentence/3class')
-            else:
-                df_train, df_val, df_test = load_data('sentence', classification)
-
-    if level == 'document':
-        print('You are finetuning document-level SA!')
-
-        if os.path.exists('data/sentiment/document'):
-            df_train, df_val, df_test = find_csv('data/sentiment/document')
+def training_evaluating(
+    check_for_t5 = False,
+    name_sub_info = 'sentence',
+    data_path = True, 
+    model_identifier = 'ltg/norbert2',
+    run_name = 'norbench_model',
+    epochs = 10,
+    max_length = 256,
+    batch_size = 8,
+    learning_rate = 2e-05,
+    custom_wrapper = False,
+    seed = 42
+):
+    seed_everything(seed)
+    # load train, test and dev datasets 
+    level = name_sub_info
+    if level == 'sentence' or level == 'document':
+        logger.info(f'You are finetuning {level}-level SA!')
+        if os.path.exists(f'data/{level}'):
+            df_train, df_val, df_test = find_csv(f'data/{level}') 
         else:
-            df_train, df_val, df_test = load_data('document', classification)
-        
+            df_train, df_val, df_test = load_data(level)
+    if level == 'document':
         df_train, df_val, df_test = labels_6_to_3(df_train), labels_6_to_3(df_val), labels_6_to_3(df_test)
-    
-    if level != 'sentence' and level != 'document': 
-        print('Please specify level of sentiment analysis and number of classes! Examples: "sentence_2", "sentence_3" or "document_3"')
+    if data_path != True and level == 'other':
+        df_train, df_val, df_test = find_csv(data_path)
 
-    print(f'Train samples: {len(df_train)}')
-    print(f'Validation samples: {len(df_val)}')
-    print(f'Test samples: {len(df_test)}')
+    if level != 'document' and level != 'sentence' and level != 'other':
+        logger.info("Please specify --task_specific_info argument: 'sentence' if you want to use corpora with "
+                    "sentence-level sentiment analysys or 'document' for document-level SA. 'other' "
+                    "if you want to use your own corpora")
+        # Exit the script with a non-zero exit code to indicate an error
+        sys.exit(1)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    automodel = AutoModel.from_pretrained(path_to_model)
+    #  training and evaluation for masked language models
+    if check_for_t5 == False:
+        dev_score, test_score = training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed)
 
-    if 't5' not in automodel.config.architectures[0].lower():
-        avg_val_f1, avg_test_f1 = training_evaluating_not_t5(level, custom_wrapper, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification)
-    else:
-        avg_val_f1, avg_test_f1 = training_evaluating_t5(level, path_to_model, lr, max_length, batch_size, epochs, df_train, df_val, df_test, device, classification)
-
-    return avg_val_f1, avg_test_f1
-
-
+     #  training and evaluation T5 models
+    if check_for_t5 == True:
+        dev_score, test_score = training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, seed)
 
 
-#avg_val_f1, avg_test_f1 = training_evaluating(task_specific_info='sentence_2', custom_wrapper=False, path_to_model='t5-small')
-
-
+    return dev_score, test_score
