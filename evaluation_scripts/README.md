@@ -6,19 +6,19 @@ At the moment, we have the evaluation scripts for [4 NLP tasks](http://wiki.nlpl
 
 * In the current documentation, information about 3 of 4 tasks is provided in details:
   + [Fine-grained Sentiment Analysis task](#FINEGRAINED) -- detailed information about the current task is provided in the repository by link in the section
-  + [Sentiment Analysis task](#SENT)
+  + [Sentiment Analysis task](#sentiment-analysis-task)
     - [Data](#SENT_DATA)
     - [Evaluation](#SENT_EVAL)
     - [Models](#SENT_MODELS)
-  + [Part-Of-Speech tagging task](#POS)
+  + [Part-Of-Speech tagging task](#part-of-speech-tagging-task)
     - [Data](#POS_DATA)
     - [Evaluation](#POS_EVAL)
     - [Models](#POS_MODELS)
-  + [Named Entity Recognition task](#NER)
+  + [Named Entity Recognition task](#named-entity-recognition-task)
     - [Data](#NER_DATA)
     - [Evaluation](#NER_EVAL)
     - [Models](#NER_MODELS)
-* [Run tasks](#ALL_TASKS) 
+* [Run all tasks](#run-all-tasks) 
    + [Parameters](#ALL_PARAMS) 
    + [Running scripts. Examples](#ALL_PARAMS_EXP) 
 
@@ -30,7 +30,7 @@ The code and overall discription for the current task can be found [in this repo
 
 ---
 
-### <a name="SENT_TASK"></a> Sentiment Analysis Task
+### Sentiment Analysis Task
 
 #### Data
 
@@ -74,7 +74,7 @@ For any other model you can provide a path to HuggingFace model in ```-path_to_m
 
 ---
 
-### <a name="POS"></a> Part of Speech Tagging Task
+### Part of Speech Tagging Task
 
 
 #### Data
@@ -110,7 +110,7 @@ For the Part-of-speech tagging task, models of different architectures for fine-
 
 ---
 
-### <a name="NER"></a> Named Entity Recognition Task
+### Named Entity Recognition Task
 
 #### Data
 
@@ -162,7 +162,7 @@ For the NER task, models of different architectures for fine-tuning/evaluating c
 
 ---
 
-### <a name="ALL_TASKS"></a> Run tasks
+### Run all tasks
 To run benchmark tasks `norbench_run.py` should be used.
 
 The current script provides the ability to run all benchmark tasks (that were mentioned above in details) for one model or all models for one task.
