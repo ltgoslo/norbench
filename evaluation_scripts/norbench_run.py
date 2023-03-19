@@ -1,33 +1,12 @@
-import argparse
-import numpy as np
-import pandas as pd
-import os
-import sentiment_finetuning
-import ner_t5
-import pos_t5
-import pos_finetuning
-import ner_finetuning
-import fine_tuning
-from transformers import AutoModel
 import utils.model_utils as model_utils
-import utils.pos_utils as pos_utils
 from distutils.util import strtobool
+from transformers import AutoModel
+import pandas as pd
+import argparse
+import os
 
 os.environ["WANDB_DISABLED"] = "true"
 
-tasks = {
-    'sentiment': {
-        'train_evaluate': sentiment_finetuning.training_evaluating,
-    },
-    'pos': {
-        'train': pos_finetuning.train,
-        'eval': pos_finetuning.test,
-    },
-    'ner': {
-        'train': ner_finetuning.train_use_eval,
-        'test': ner_finetuning.test,
-    }
-}
 
 def_subtasks = {
     'sentiment': 'document_3',
@@ -56,22 +35,27 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
         table = pd.DataFrame()
         for i,seed in enumerate(seed):
             if current_task == 'ner':
+                import ner_finetuning
                 if check_for_t5 == False:
-                    trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    test_score =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    trainer, tokenized_data = ner_finetuning.train_use_eval(data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    test_score =  ner_finetuning.test(data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                 else:
+                    import ner_t5
                     model, tokenizer = ner_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, use_seqeval_evaluation=use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                     test_score = ner_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length)
 
             if current_task == 'sentiment':
-                dev_score, test_score = tasks[current_task]['train_evaluate'](check_for_t5, name_sub_info, data_path, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed) 
+                import sentiment_finetuning
+                dev_score, test_score = sentiment_finetuning.training_evaluating(check_for_t5, name_sub_info, data_path, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed) 
             
             if current_task == 'pos':
+                import pos_finetuning
                 if check_for_t5 == False:
-                    training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    training_object = pos_finetuning.train(data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    dev_score =  pos_finetuning.test(data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    test_score = pos_finetuning.test(data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                 else:
+                    import pos_t5
                     model, tokenizer = pos_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                     test_score = pos_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length)
 

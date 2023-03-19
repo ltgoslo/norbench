@@ -173,7 +173,7 @@ def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifie
                 num_training_steps=total_steps
                 )
     
-    best_valid_f1 = float('-inf')
+    best_valid_f1 = float('inf')
 
     for epoch in range(epochs):
         logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
@@ -415,7 +415,7 @@ def testing(model, dataloader, tokenizer,test_dataset):
 
     return avg_test_loss, avg_test_acc, avg_test_f1, pred_df
 
-def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, seed):
+def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed):
 
     logger.info(f'Train samples: {len(df_train)}')
     logger.info(f'Validation samples: {len(df_val)}')
@@ -432,7 +432,14 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
     test_dataset = DataLoader(test_loader, batch_size=int(batch_size), shuffle=False)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+    
+    if custom_wrapper==False:
+      model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+    if custom_wrapper==True:
+      sys.path.append(model_identifier)
+      from modeling_nort5 import NorT5ForConditionalGeneration
+      model = NorT5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+
 
     optimizer = torch.optim.AdamW(model.parameters(),
                     lr = float(learning_rate)
@@ -448,7 +455,7 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
     scaler = GradScaler()
 
     valid_losses = []
-    best_valid_loss = float('-inf')
+    best_valid_loss = float('inf')
 
     for epoch in range(epochs):
         logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
@@ -468,8 +475,11 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
         logger.info(f'Validation loss -- {avg_valid_loss} -- accuracy {avg_valid_acc} -- f1 {avg_valid_f1}')
         valid_losses.append(avg_valid_loss)
         # check validation loss
-        if valid_losses[epoch] >= best_valid_loss:
-            best_valid_loss = valid_losses[epoch]
+        # EARLY STOPPING
+        print('AVG: ',avg_valid_loss)
+        print('BEST: ', best_valid_loss)
+        if avg_valid_loss <= best_valid_loss:
+            best_valid_loss = avg_valid_loss
             # save best model for use later
             pathlib.Path('./saved_models').mkdir(parents=True, exist_ok=True)  
             torch.save(model.state_dict(),f'saved_models/{run_name}.pt')
@@ -479,7 +489,14 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
 
     # TEST 
     logger.info('-------------TESTINGS-----------------')
-    model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+
+    if custom_wrapper==False:
+      model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+    if custom_wrapper==True:
+      sys.path.append(model_identifier)
+      from modeling_nort5 import NorT5ForConditionalGeneration
+      model = NorT5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+
     model.load_state_dict(torch.load(f'./saved_models/{run_name}.pt'))
     avg_test_loss, avg_test_acc, avg_test_f1, pred_df = testing(model, test_dataset, tokenizer, test_dataset)
     
@@ -487,7 +504,7 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
     pred_df = pred_df.assign(text=df_test.review)
     pred_df.to_csv(f'./test_predictions/{run_name}.csv')
     logger.info(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
-    return best_valid_loss, avg_test_f1
+    return avg_valid_f1, avg_test_f1
 
 
 ### General training and evaluating function
@@ -533,7 +550,7 @@ def training_evaluating(
 
      #  training and evaluation T5 models
     if check_for_t5 == True:
-        dev_score, test_score = training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, seed)
+        dev_score, test_score = training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed)
 
 
     return dev_score, test_score

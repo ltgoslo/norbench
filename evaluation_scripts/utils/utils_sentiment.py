@@ -80,8 +80,8 @@ def find_csv(path):
             return None
 
     df_train = pd.read_csv(os.path.join(path,'train.csv'))
-    df_val = pd.read_csv(os.path.join(path,'test.csv'))
-    df_test = pd.read_csv(os.path.join(path,'dev.csv'))
+    df_val = pd.read_csv(os.path.join(path,'dev.csv'))
+    df_test = pd.read_csv(os.path.join(path,'test.csv'))
 
     return df_train, df_val, df_test
 
