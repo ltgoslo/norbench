@@ -173,7 +173,7 @@ def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifie
                 num_training_steps=total_steps
                 )
     
-    best_valid_f1 = float('inf')
+    best_valid_f1 = float('-inf')
 
     for epoch in range(epochs):
         logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
