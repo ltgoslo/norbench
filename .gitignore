@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+    # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -133,3 +133,6 @@ data/
 saved_models/
 test_predictions/
 results/
+
+# Apple rubbish
+.DS_Store
