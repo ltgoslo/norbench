@@ -1,9 +1,7 @@
 #!/bin/env python3
 
 import tensorflow as tf
-import sentencepiece
 import re
-import git
 import os
 from git.repo.base import Repo
 import importlib
