@@ -212,6 +212,7 @@ def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifie
     logger.info('-------------TESTINGS-----------------')
     model = SentimentClassifier(len(class_names), custom_wrapper, model_identifier)
     model.load_state_dict(torch.load(f'saved_models/{run_name}.bin'))
+    model.to(device)
     test_acc, test_loss, test_f1, test_report, pred_df = eval_model(
                                                 model,
                                                 test_data_loader,
