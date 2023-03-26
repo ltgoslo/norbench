@@ -1,4 +1,3 @@
-import utils.model_utils as model_utils
 from distutils.util import strtobool
 from transformers import AutoModel
 import pandas as pd
@@ -25,7 +24,8 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
             print(f'...As subtask info was not mentioned and path_to_dataset was explicitly stated, {name_sub_info} was chosen as default for task {current_task}...')
             print(f'...If the current info for subtask is needed, it should be stated explicitly in argument --task_specific_info...')
 
-    check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_utils.get_full_model_names(model_identifier)).config.architectures[0].lower() else False
+    #check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_utils.get_full_model_names(model_identifier)).config.architectures[0].lower() else False
+    check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_identifier).config.architectures[0].lower() else False
 
     metric = {'sentiment': 'F1', 
               'pos': 'Accuracy',
@@ -34,6 +34,10 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
     if do_train == True:
         table = pd.DataFrame()
         for i,seed in enumerate(seed):
+            
+            if current_task != 'sentiment':
+                import utils.model_utils as model_utils
+
             if current_task == 'ner':
                 import ner_finetuning
                 if check_for_t5 == False:
