@@ -14,7 +14,7 @@ def_subtasks = {
 }
 
 def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier, run_name, epochs, use_seqeval_evaluation_for_ner, max_length, batch_size, eval_batch_size, learning_rate, custom_wrapper, seed):
-    
+
     if name_sub_info == '':
         if data_path == True:
             name_sub_info = def_subtasks[current_task]
@@ -24,17 +24,19 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
             print(f'...As subtask info was not mentioned and path_to_dataset was explicitly stated, {name_sub_info} was chosen as default for task {current_task}...')
             print(f'...If the current info for subtask is needed, it should be stated explicitly in argument --task_specific_info...')
 
-    #check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_utils.get_full_model_names(model_identifier)).config.architectures[0].lower() else False
-    check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_identifier).config.architectures[0].lower() else False
+    cur_model = AutoModel.from_pretrained(model_identifier)
+    if cur_model.config.architectures:
+        check_for_t5 = True if 't5' in cur_model.config.architectures[0].lower() else False
+    else:
+        check_for_t5 = True if 't5' in model_identifier.lower() else False
 
-    metric = {'sentiment': 'F1', 
+    metric = {'sentiment': 'F1',
               'pos': 'Accuracy',
               'ner': 'F1'}
 
     if do_train == True:
         table = pd.DataFrame()
         for i,seed in enumerate(seed):
-            
             if current_task != 'sentiment':
                 import utils.model_utils as model_utils
 
@@ -50,8 +52,8 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
 
             if current_task == 'sentiment':
                 import sentiment_finetuning
-                dev_score, test_score = sentiment_finetuning.training_evaluating(check_for_t5, name_sub_info, data_path, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed) 
-            
+                dev_score, test_score = sentiment_finetuning.training_evaluating(check_for_t5, name_sub_info, data_path, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed)
+
             if current_task == 'pos':
                 import pos_finetuning
                 if check_for_t5 == False:
@@ -74,8 +76,9 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
 
         if not os.path.exists("results"):
             os.makedirs("results")
-            
-        table.to_csv(f"results/{run_name}_{str(name_sub_info)}_{current_task}.tsv", sep="\t")
+
+        table.to_csv(f"results/{run_name}_{str(name_sub_info)}_{current_task}.tsv", sep="\t",
+                index=False)
         print(f"Scores saved to results/{run_name}_{str(name_sub_info)}_{current_task}.tsv")
 
 

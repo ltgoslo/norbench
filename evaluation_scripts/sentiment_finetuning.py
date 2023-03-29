@@ -118,7 +118,7 @@ def eval_model(model, data_loader, loss_fn, device, n_examples, level):
   correct_predictions = 0
   y_true, y_pred = [], []
   with torch.no_grad():
-    for d in data_loader:
+    for d in tqdm.tqdm(data_loader):
       input_ids = d["input_ids"].to(device)
       attention_mask = d["attention_mask"].to(device)
       targets = d["targets"].to(device)
@@ -150,6 +150,7 @@ def eval_model(model, data_loader, loss_fn, device, n_examples, level):
 
 def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed):
 
+    logger.info(f'Training and evaluating with the seed: {seed}')
     logger.info(f'Train samples: {len(df_train)}')
     logger.info(f'Validation samples: {len(df_val)}')
     logger.info(f'Test samples: {len(df_test)}')
