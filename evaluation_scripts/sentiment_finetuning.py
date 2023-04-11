@@ -85,7 +85,7 @@ def train_epoch(
   model = model.train()
   losses = []
   correct_predictions = 0
-  
+
   for d in tqdm.tqdm(data_loader):
     input_ids = d["input_ids"].to(device)
     attention_mask = d["attention_mask"].to(device)
@@ -157,7 +157,7 @@ def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifie
 
 
     tokenizer = AutoTokenizer.from_pretrained(model_identifier)
-    train_data_loader = create_data_loader(df_train, tokenizer, max_length, batch_size)
+    train_data_loader = create_data_loader(df_train, tokenizer, max_length, batch_size, shuffle=True)
     val_data_loader = create_data_loader(df_val, tokenizer, max_length, batch_size)
     test_data_loader = create_data_loader(df_test, tokenizer, max_length, batch_size)
 
@@ -173,7 +173,7 @@ def training_evaluating_not_t5(df_train, df_val, df_test, level, model_identifie
                 num_warmup_steps=2,
                 num_training_steps=total_steps
                 )
-    
+
     best_valid_f1 = float('-inf')
 
     for epoch in range(epochs):

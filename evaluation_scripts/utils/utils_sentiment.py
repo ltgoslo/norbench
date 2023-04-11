@@ -8,13 +8,13 @@ import json
 import os
 
 def labels_6_to_3(df):
-    
+
     df.sentiment = df.sentiment.replace(1,0)
     df.sentiment = df.sentiment.replace(2,0)
     df.sentiment = df.sentiment.replace(3,1)
     df.sentiment = df.sentiment.replace(4,2)
     df.sentiment = df.sentiment.replace(5,2)
-    
+
     return df
 
 def labels_to_names(labels):
@@ -42,7 +42,7 @@ def labels_to_names_sentence(labels):
 
 def get_text(path: str) -> str:
 
-    with open(path, 'r' ,encoding='utf-8') as f: 
+    with open(path, 'r' ,encoding='utf-8') as f:
         text = f.read()
 
     return text
@@ -66,7 +66,7 @@ def create_dataframe_sentence(path):
         encoded_labels.append(1)
       if i == 'Positive':
         encoded_labels.append(2)
-    
+
     df = pd.DataFrame(columns=["sentiment", "review"])
     df['sentiment'] = encoded_labels
     df['review'] = texts
@@ -87,14 +87,14 @@ def find_csv(path):
 
 # level: sentence or document
 def load_data(level):
-    
-    if level == 'document':    
+
+    if level == 'document':
         norec_document_link = 'https://github.com/ltgoslo/norec'
         if not os.path.exists('data/norec/'):
             Repo.clone_from(norec_document_link, 'data/norec')
         path = 'data/norec/data'
 
-        
+
         train = pd.DataFrame(columns=['review', 'sentiment'])
         test = pd.DataFrame(columns=['review', 'sentiment'])
         dev = pd.DataFrame(columns=['review', 'sentiment'])
@@ -117,22 +117,22 @@ def load_data(level):
         train[['sentiment', 'review']].to_csv('data/document/train.csv', index=False)
         dev[['sentiment', 'review']].to_csv('data/document/dev.csv', index=False)
         test[['sentiment', 'review']].to_csv('data/document/test.csv', index=False)
-    
+
     if level == 'sentence':
         norec_sentence_link = 'https://github.com/ltgoslo/norec_sentence'
         if not os.path.exists('data/norec_sentence/3class/'):
             Repo.clone_from(norec_sentence_link, 'data/norec_sentence')
         path = 'data/norec_sentence/3class/'
-        
+
         train = create_dataframe_sentence(os.path.join(path, "train.json"))
         dev = create_dataframe_sentence(os.path.join(path, "dev.json"))
         test = create_dataframe_sentence(os.path.join(path, "test.json"))
-        
+
         pathlib.Path('./data/sentence').mkdir(parents=True, exist_ok=True)
         train.to_csv('data/sentence/train.csv', index=False)
         dev.to_csv('data/sentence/dev.csv', index=False)
         test.to_csv('data/sentence/test.csv', index=False)
-    
+
     return train, dev, test
 
 class Dataset(Dataset):
@@ -166,7 +166,7 @@ class Dataset(Dataset):
       'targets': torch.tensor(target, dtype=torch.long)
     }
 
-def create_data_loader(df, tokenizer, max_len, batch_size):
+def create_data_loader(df, tokenizer, max_len, batch_size, shuffle=False):
   ds = Dataset(
     texts=df.review.to_numpy(),
     targets=df.sentiment.to_numpy(),
@@ -175,6 +175,7 @@ def create_data_loader(df, tokenizer, max_len, batch_size):
   )
   return DataLoader(
     ds,
-    batch_size=batch_size
+    batch_size=batch_size,
+    shuffle=shuffle
   )
 
