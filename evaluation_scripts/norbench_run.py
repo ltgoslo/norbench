@@ -1,5 +1,4 @@
 from distutils.util import strtobool
-from transformers import AutoModel
 import pandas as pd
 import argparse
 import os
@@ -24,11 +23,9 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
             print(f'...As subtask info was not mentioned and path_to_dataset was explicitly stated, {name_sub_info} was chosen as default for task {current_task}...')
             print(f'...If the current info for subtask is needed, it should be stated explicitly in argument --task_specific_info...')
 
-    cur_model = AutoModel.from_pretrained(model_identifier)
-    if cur_model.config.architectures:
-        check_for_t5 = True if 't5' in cur_model.config.architectures[0].lower() else False
-    else:
-        check_for_t5 = True if 't5' in model_identifier.lower() else False
+    check_for_t5 = True if "t5" in model_identifier.lower() else False
+    if check_for_t5:
+        print("T5 architecture detected from your model name. Make sure to check it is indeed T5!")
 
     metric = {'sentiment': 'F1',
               'pos': 'Accuracy',
@@ -155,8 +152,8 @@ if __name__ == "__main__":
         for tsk, path_tsk in pathes_to_data.items():
             if checking_data(path_tsk, tsk) == False :
                 print(f'...Path to data for {tsk} task was not mentioned. Path to relevant dataset with default subtask {def_subtasks[tsk]} was used. ...')
-                path_tsk = True          
+                path_tsk = True
             run_models_for_current_task(do_train, tsk, name_sub_info, path_tsk, run_name, model_identifier, epochs, use_seqeval_evaluation_for_ner, max_length, batch_size, eval_batch_size, learning_rate, custom_wrapper, seed)
-    
+
     else:
         run_models_for_current_task(do_train, current_task, name_sub_info, data_path, run_name, model_identifier, epochs, use_seqeval_evaluation_for_ner, max_length, batch_size, eval_batch_size, learning_rate, custom_wrapper, seed)
