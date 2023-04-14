@@ -10,6 +10,10 @@ from datasets import load_metric, load_dataset, Dataset
 from utils.utils import read_conll
 from utils.pos_utils import token_type_model_attr, organized_subsets_t5, entities_tokens
 
+
+pos_tags, marked_tags, labels2words, entities2markedtags = entities_tokens()    
+ 
+
 def tokenizer_class_subword_tokenization(value):
   class TTokenizer(value):
       def subword_tokenize(self, tokens, labels):
@@ -163,6 +167,7 @@ def load_dataset(data_path, tokenizer, model, max_length, tagset, dataset_name="
 def tokenization_func(tokenizer, doc, max_len):
   return tokenizer.encode_plus(
                             doc,  # document to encode.
+                            add_special_tokens=True,  # add tokens relative to model
                             max_length=max_len,  # set max length
                             truncation=True,  # truncate longer messages
                             padding="max_length",  # add padding
@@ -215,7 +220,7 @@ class DatasetPreparstion(Dataset):
         for text, labels in zip(self.source_text, self.target_text):
           upd_str = ''
           for token, lab in zip(text, labels):
-            upd_str += f'{token} <{lab}> ' 
+            upd_str += f'{token} {labels2words[lab]} '
           updated_tagets.append(upd_str.strip())
         
         return updated_tagets

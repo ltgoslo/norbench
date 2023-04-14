@@ -72,12 +72,12 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
                     dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                     test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                 else:
-                    model, tokenizer = pos_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    test_score = pos_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length)
+                    model, tokenizer = pos_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate, custom_wrapper=custom_wrapper)
+                    test_score = pos_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length, custom_wrapper=custom_wrapper)
 
-            table[f"Dev {metric[current_task]} seed {seed}"] = [dev_score]
+            table[f"Test {metric[current_task]} seed {seed}"] = [test_score]
             try:
-                table[f"Test {metric[current_task]} seed {seed}"] = [test_score]
+                table[f"Dev {metric[current_task]} seed {seed}"] = [dev_score]
             except:
                 pass
 
