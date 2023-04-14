@@ -249,7 +249,7 @@ def train(model, dataloader, optimizer, scaler, scheduler, tokenizer):
     # put model into traning mode
     model.train()
     # for each batch of training data...
-    for _, data in tqdm.tqdm(enumerate(dataloader, 0)):
+    for data in tqdm.tqdm(dataloader):
 
         b_input_ids = data["source_ids"].to(device)
         b_input_mask = data["source_mask"].to(device)
@@ -317,7 +317,7 @@ def validating(model, dataloader, tokenizer):
     actuals = []
 
     # evaluate data for one epoch
-    for _, data in enumerate(dataloader, 0):
+    for data in tqdm.tqdm(dataloader):
         b_input_ids = data["source_ids"].to(device)
         b_input_mask = data["source_mask"].to(device)
         b_target_ids = data["target_ids"].to(device)
@@ -362,7 +362,7 @@ def testing(model, dataloader, tokenizer,test_dataset):
 
     # put the model in evaluation mode
     model.eval()
-    
+
     pred_df = pd.DataFrame(columns=['true','pred'])
 
     # track variables
@@ -373,7 +373,7 @@ def testing(model, dataloader, tokenizer,test_dataset):
     actuals = []
 
     # evaluate data for one epoch
-    for _, data in enumerate(dataloader, 0):
+    for data in tqdm.tqdm(dataloader):
         b_input_ids = data["source_ids"].to(device)
         b_input_mask = data["source_mask"].to(device)
         b_target_ids = data["target_ids"].to(device)
@@ -434,7 +434,7 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
     test_dataset = DataLoader(test_loader, batch_size=int(batch_size), shuffle=False)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    
+
     if custom_wrapper==False:
       model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
     if custom_wrapper==True:
@@ -461,7 +461,6 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
 
     for epoch in range(epochs):
         logger.info(f'---------------------Epoch {epoch + 1}/{epochs}---------------------')
-        
         # train
         avg_train_loss, avg_train_acc, avg_train_f1 = train(model,
                     train_dataset,
@@ -483,13 +482,13 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
         if avg_valid_loss <= best_valid_loss:
             best_valid_loss = avg_valid_loss
             # save best model for use later
-            pathlib.Path('./saved_models').mkdir(parents=True, exist_ok=True)  
+            pathlib.Path('./saved_models').mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(),f'saved_models/{run_name}.pt')
-        else: 
+        else:
             break
-        
 
-    # TEST 
+
+    # TEST
     logger.info('-------------TESTINGS-----------------')
 
     if custom_wrapper==False:
@@ -501,8 +500,8 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
 
     model.load_state_dict(torch.load(f'./saved_models/{run_name}.pt'))
     avg_test_loss, avg_test_acc, avg_test_f1, pred_df = testing(model, test_dataset, tokenizer, test_dataset)
-    
-    pathlib.Path('./test_predictions').mkdir(parents=True, exist_ok=True) 
+
+    pathlib.Path('./test_predictions').mkdir(parents=True, exist_ok=True)
     pred_df = pred_df.assign(text=df_test.review)
     pred_df.to_csv(f'./test_predictions/{run_name}.csv')
     logger.info(f'Test loss -- {avg_test_loss} -- accuracy {avg_test_acc} -- f1 {avg_test_f1}')
@@ -515,7 +514,7 @@ def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, r
 def training_evaluating(
     check_for_t5 = False,
     name_sub_info = 'sentence',
-    data_path = True, 
+    data_path = True,
     model_identifier = 'ltg/norbert2',
     run_name = 'norbench_model',
     epochs = 10,
@@ -526,12 +525,12 @@ def training_evaluating(
     seed = 42
 ):
     seed_everything(seed)
-    # load train, test and dev datasets 
+    # load train, test and dev datasets
     level = name_sub_info
     if level == 'sentence' or level == 'document':
         logger.info(f'You are finetuning {level}-level SA!')
         if os.path.exists(f'data/{level}'):
-            df_train, df_val, df_test = find_csv(f'data/{level}') 
+            df_train, df_val, df_test = find_csv(f'data/{level}')
         else:
             df_train, df_val, df_test = load_data(level)
     if level == 'document':
