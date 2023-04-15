@@ -419,6 +419,7 @@ def testing(model, dataloader, tokenizer,test_dataset):
 
 def training_evaluating_t5(df_train, df_val, df_test, level, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed):
 
+    logger.info(f'Training and evaluating with the seed: {seed}')
     logger.info(f'Train samples: {len(df_train)}')
     logger.info(f'Validation samples: {len(df_val)}')
     logger.info(f'Test samples: {len(df_test)}')

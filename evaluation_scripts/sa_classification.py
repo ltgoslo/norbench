@@ -228,12 +228,13 @@ if __name__ == "__main__":
         model.eval()
         dev_predictions = []
         dev_labels = []
-        for text, mask, label in tqdm.tqdm(dev_iter):
-            outputs = model(text, attention_mask=mask)
-            predictions = outputs.logits
-            accuracy, predicted_labels = multi_acc(predictions, label)
-            dev_predictions += predicted_labels
-            dev_labels += label.tolist()
+        with torch.no_grad():
+            for text, mask, label in tqdm.tqdm(dev_iter):
+                outputs = model(text, attention_mask=mask)
+                predictions = outputs.logits
+                accuracy, predicted_labels = multi_acc(predictions, label)
+                dev_predictions += predicted_labels
+                dev_labels += label.tolist()
         precision, recall, fscore, support = metrics.precision_recall_fscore_support(
             [mapping[el] for el in dev_labels],
             [mapping[el] for el in dev_predictions],
@@ -259,12 +260,13 @@ if __name__ == "__main__":
 
     test_predictions = []
     test_labels = []
-    for text, mask, label in tqdm.tqdm(test_iter):
-        outputs = model(text, attention_mask=mask)
-        predictions = outputs.logits
-        accuracy, predicted_labels = multi_acc(predictions, label)
-        test_predictions += predicted_labels
-        test_labels += label.tolist()
+    with torch.no_grad():
+        for text, mask, label in tqdm.tqdm(test_iter):
+            outputs = model(text, attention_mask=mask)
+            predictions = outputs.logits
+            accuracy, predicted_labels = multi_acc(predictions, label)
+            test_predictions += predicted_labels
+            test_labels += label.tolist()
 
     mapped_labels = [mapping[el] for el in test_labels]
     mapped_predictions = [mapping[el] for el in test_predictions]

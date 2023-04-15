@@ -148,12 +148,12 @@ class Dataset(Dataset):
   def __getitem__(self, item):
     text = str(self.texts[item])
     target = self.targets[item]
-    encoding = self.tokenizer.encode_plus(
+    encoding = self.tokenizer(
       text,
       add_special_tokens=True,
       max_length=self.max_len,
       return_token_type_ids=False,
-      padding='max_length',
+      padding="longest",
       return_attention_mask=True,
       truncation=True,
       return_tensors='pt',
