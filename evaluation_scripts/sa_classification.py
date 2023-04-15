@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     logger.info("Reading dev data...")
     dev_data = pd.read_csv(devset)
-    logger.info("Test data reading complete.")
+    logger.info("Dev data reading complete.")
 
     logger.info("Reading test data...")
     test_data = pd.read_csv(testset)
