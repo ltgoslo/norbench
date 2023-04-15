@@ -58,6 +58,7 @@ def tokenization_func(tokenizer, doc, max_len):
   return tokenizer.encode_plus(
                             doc, 
                             max_length=max_len,
+                            add_special_tokens=True,
                             truncation=True,
                             padding="max_length",
                             return_attention_mask=True,
@@ -108,8 +109,8 @@ class DatasetPreparstion(Dataset):
     
     
     def __getitem__(self, index):
-        source_text = ' '.join(self.source_text[index]).lower() + ' </s>'
-        target_text = self.reorganize_target_text(index).lower() + ' </s>'
+        source_text = ' '.join(self.source_text[index]).lower() + self.tokenizer.eos_token# + ' </s>'
+        target_text = self.reorganize_target_text(index).lower() + self.tokenizer.eos_token# + ' </s>'
         source = tokenization_func(self.tokenizer, source_text, self.text_len)
         target = tokenization_func(self.tokenizer, target_text, self.text_len)
 

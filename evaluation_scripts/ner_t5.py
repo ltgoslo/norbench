@@ -4,6 +4,7 @@ from transformers import XLMRobertaTokenizer, XLMRobertaForTokenClassification, 
 import argparse
 import pandas as pd
 import os
+import sys
 import textwrap
 from torch.utils.data import Dataset, DataLoader
 import torch
@@ -25,6 +26,8 @@ from transformers import (
     T5Model,
     T5ForConditionalGeneration,
     T5Tokenizer,
+    T5TokenizerFast,
+    AutoTokenizer,
     get_linear_schedule_with_warmup
 )
 
@@ -41,7 +44,6 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 seed = 42
 np.random.seed(seed)
 python_random.seed(seed)
-tf.random.set_seed(seed)
 
 def getting_data(tokenizer, path, batch_size=8, max_length=512, eval_batch_size=8, full_pipeline=True):
     if full_pipeline == True:
@@ -88,10 +90,11 @@ def train(model, tokenizer, dataloader, optimizer, scaler, scheduler, training_s
             b_target_mask = data["target_mask"].to(device)
             lm_labels = data["target_ids"].to(device)
 
-            lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100
+            # lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100
 
             optimizer.zero_grad()
 
+            # print(b_input_ids.shape, b_input_mask.shape, b_target_mask.shape, lm_labels.shape)
             with autocast():
                 outputs = model(input_ids=b_input_ids,
                                 attention_mask=b_input_mask,
@@ -142,7 +145,7 @@ def validating(model, tokenizer, dataloader, valid_stats, epoch):
             b_input_ids = data["source_ids"].to(device)
             b_input_mask = data["source_mask"].to(device)
             lm_labels = data["target_ids"].to(device)
-            lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100
+            # lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100
             b_target_mask = data["target_mask"].to(device)
 
             with torch.no_grad():
@@ -179,7 +182,7 @@ def validating(model, tokenizer, dataloader, valid_stats, epoch):
 
 
 
-def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, max_length=512, batch_size=8, eval_batch_size=8, learning_rate=3e-5, tagset=tagset):
+def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, use_seqeval_evaluation, max_length=512, batch_size=8, eval_batch_size=8, learning_rate=3e-5, custom_wrapper=False, tagset=tagset):
 
     checkpoints_path = f"checkpoints/{task}/{sub_info}/{run_name}/"
     if not os.path.isdir(checkpoints_path):
@@ -187,9 +190,20 @@ def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, us
 
     if data_path == True:
         data_path = download_datasets(task, sub_info)
-        
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-    model = T5ForConditionalGeneration.from_pretrained(model_name).to(device)
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name) 
+    if not custom_wrapper:
+        # tokenizer = T5Tokenizer.from_pretrained(model_name)
+        model = T5ForConditionalGeneration.from_pretrained(model_name).to(device)
+    else:
+        sys.path.append(model_name)
+        print('You are using a custom wrapper, NOT a HuggingFace model.')
+        from modeling_nort5 import NorT5ForConditionalGeneration
+        # tokenizer = AutoTokenizer.from_pretrained(model_name) 
+        # tokenizer = T5TokenizerFast.from_pretrained(model_name)
+        model = NorT5ForConditionalGeneration.from_pretrained(model_name).to(device)
+
+
     train_dataset, val_dataset, test_dataset  =  getting_data(tokenizer, data_path, batch_size=batch_size, max_length=max_length, eval_batch_size=eval_batch_size)
     optimizer, scheduler, scaler = initialize_opt_shed(model, train_dataset, epochs, learning_rate)
     training_stats = []
@@ -250,7 +264,7 @@ def test_generate(model, tokenizer, test_dataset):
     return outputs, targets, all_text, true_labels, pred_labels
 
 
-def test(data_path, name_sub_info, model_identifier, tokenizer, current_task, run_name, batch_size=8, max_length=512, tagset=tagset):
+def test(data_path, name_sub_info, model_identifier, tokenizer, current_task, run_name, batch_size=8, max_length=512, tagset=tagset, custom_wrapper=False):
     
     if data_path == True:
         data_path = download_datasets(current_task, name_sub_info)
@@ -258,7 +272,13 @@ def test(data_path, name_sub_info, model_identifier, tokenizer, current_task, ru
     checkpoints_path = f"checkpoints/{current_task}/{name_sub_info}/{run_name}/"
     name_to_save = f'{run_name}_{current_task}'+ '.pth'
 
-    model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+    if not custom_wrapper:
+        model = T5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+    else:
+        sys.path.append(model_identifier)
+        from modeling_nort5 import NorT5ForConditionalGeneration
+        model = NorT5ForConditionalGeneration.from_pretrained(model_identifier).to(device)
+
     model.load_state_dict(torch.load(checkpoints_path+name_to_save))
     test_dataset = getting_data(tokenizer, data_path, max_length=max_length, batch_size=batch_size, full_pipeline=False)
     outputs, targets, all_text, true_labels, pred_labels = test_generate(model, tokenizer, test_dataset)
