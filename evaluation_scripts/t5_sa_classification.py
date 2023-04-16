@@ -217,7 +217,7 @@ if __name__ == "__main__":
             outputs = model(
                 input_ids=text,
                 attention_mask=mask,
-                labels=label[:, 1:]
+                labels=label
             )
             loss = outputs.loss
             losses += loss.item()
@@ -255,7 +255,7 @@ if __name__ == "__main__":
             f"Epoch: {epoch}, Train loss: {train_loss:.4f}, Dev F1: {fscore:.4f}")
         fscores.append(fscore)
         if len(fscores) > 2:
-            if fscores[-1] <= fscores[-2]:
+            if fscores[-1] < fscores[-2]:
                 logger.info("Early stopping!")
                 break
         model.train()
