@@ -166,14 +166,14 @@ def load_dataset(data_path, tokenizer, model, max_length, tagset, dataset_name="
 
 def tokenization_func(tokenizer, doc, max_len):
   return tokenizer.encode_plus(
-                            doc,  # document to encode.
-                            add_special_tokens=True,  # add tokens relative to model
-                            max_length=max_len,  # set max length
-                            truncation=True,  # truncate longer messages
-                            padding="max_length",  # add padding
-                            return_attention_mask=True,  # create attn. masks
+                            doc,
+                            add_special_tokens=True,
+                            max_length=max_len,
+                            truncation=True,
+                            padding="max_length",
+                            return_attention_mask=True,
                             return_token_type_ids=False,
-                            return_tensors='pt'  # return pytorch tensors
+                            return_tensors='pt'
                        )
 
 

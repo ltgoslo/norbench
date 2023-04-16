@@ -79,7 +79,6 @@ def generate_label(input: str, target: str):
             index = find_sub_list(sent_end, input)
         except:
             continue
-        # print(index)
         try:
             init_target_label[index[0][0]] = mapper[f"B-{ent[0].upper()}"]
             for i in range(index[0][0]+1, index[0][1]+1):

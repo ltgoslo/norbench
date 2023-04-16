@@ -1,33 +1,10 @@
-import argparse
-import numpy as np
-import pandas as pd
-import os
-import sentiment_finetuning
-import ner_t5
-import pos_t5
-import pos_finetuning
-import ner_finetuning
-import fine_tuning
-from transformers import AutoModel
-import utils.model_utils as model_utils
-import utils.pos_utils as pos_utils
 from distutils.util import strtobool
+import pandas as pd
+import argparse
+import os
 
 os.environ["WANDB_DISABLED"] = "true"
 
-tasks = {
-    'sentiment': {
-        'train_evaluate': sentiment_finetuning.training_evaluating,
-    },
-    'pos': {
-        'train': pos_finetuning.train,
-        'eval': pos_finetuning.test,
-    },
-    'ner': {
-        'train': ner_finetuning.train_use_eval,
-        'test': ner_finetuning.test,
-    }
-}
 
 def_subtasks = {
     'sentiment': 'document_3',
@@ -36,7 +13,7 @@ def_subtasks = {
 }
 
 def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier, run_name, epochs, use_seqeval_evaluation_for_ner, max_length, batch_size, eval_batch_size, learning_rate, custom_wrapper, seed):
-    
+
     if name_sub_info == '':
         if data_path == True:
             name_sub_info = def_subtasks[current_task]
@@ -46,35 +23,45 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
             print(f'...As subtask info was not mentioned and path_to_dataset was explicitly stated, {name_sub_info} was chosen as default for task {current_task}...')
             print(f'...If the current info for subtask is needed, it should be stated explicitly in argument --task_specific_info...')
 
-    check_for_t5 = True if 't5' in AutoModel.from_pretrained(model_utils.get_full_model_names(model_identifier)).config.architectures[0].lower() else False
+    check_for_t5 = True if "t5" in model_identifier.lower() else False
+    if check_for_t5:
+        print("T5 architecture detected from your model name. Make sure to check it is indeed T5!")
 
-    metric = {'sentiment': 'F1', 
+    metric = {'sentiment': 'F1',
               'pos': 'Accuracy',
               'ner': 'F1'}
 
     if do_train == True:
         table = pd.DataFrame()
         for i,seed in enumerate(seed):
+            if current_task != 'sentiment':
+                import utils.model_utils as model_utils
+
             if current_task == 'ner':
+                import ner_finetuning
                 if check_for_t5 == False:
-                    trainer, tokenized_data = tasks[current_task]['train'](data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    test_score =  tasks[current_task]['test'](data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    trainer, tokenized_data = ner_finetuning.train_use_eval(data_path, name_sub_info, model_identifier, run_name, current_task, epochs, use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    test_score =  ner_finetuning.test(data_path, name_sub_info, model_identifier, current_task, run_name, trainer=trainer, tokenized_data=tokenized_data, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
                 else:
-                    model, tokenizer = ner_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, use_seqeval_evaluation=use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate, custom_wrapper=custom_wrapper)
-                    test_score = ner_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length, custom_wrapper=custom_wrapper)
+                    import ner_t5
+                    model, tokenizer = ner_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, use_seqeval_evaluation=use_seqeval_evaluation_for_ner, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate, custom_wrapper=custom_wrapper, seed=seed)
+                    test_score = ner_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length, custom_wrapper=custom_wrapper, seed=seed)
 
             if current_task == 'sentiment':
-                dev_score, test_score = tasks[current_task]['train_evaluate'](check_for_t5, name_sub_info, data_path, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed) 
-            
-            if current_task == 'pos':
-                if check_for_t5 == False:
-                    training_object = tasks[current_task]['train'](data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    dev_score =  tasks[current_task]['eval'](data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                    test_score = tasks[current_task]['eval'](data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
-                else:
-                    model, tokenizer = pos_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate, custom_wrapper=custom_wrapper)
-                    test_score = pos_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length, custom_wrapper=custom_wrapper)
+                import sentiment_finetuning
+                dev_score, test_score = sentiment_finetuning.training_evaluating(check_for_t5, name_sub_info, data_path, model_identifier, run_name, epochs, max_length, batch_size, learning_rate, custom_wrapper, seed)
 
+            if current_task == 'pos':
+                import pos_finetuning
+                if check_for_t5 == False:
+                    training_object = pos_finetuning.train(data_path, sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, epochs=epochs, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    dev_score =  pos_finetuning.test(data_path, "dev", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                    test_score = pos_finetuning.test(data_path, "test", sub_task_info=name_sub_info, short_model_name=model_identifier, run_name=run_name, task=current_task, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate)
+                else:
+                    import pos_t5
+                    model, tokenizer = pos_t5.train_evaluation(data_path=data_path, sub_info=name_sub_info, model_name=model_identifier, run_name=run_name, task=current_task, epochs=epochs, max_length=max_length, batch_size=batch_size, eval_batch_size=eval_batch_size, learning_rate=learning_rate, custom_wrapper=custom_wrapper, seed=seed)
+                    test_score = pos_t5.test(data_path=data_path, name_sub_info=name_sub_info, model_identifier=model_identifier, tokenizer=tokenizer, current_task=current_task, run_name=run_name, batch_size=batch_size, max_length=max_length, custom_wrapper=custom_wrapper, seed=seed)
+            
             table[f"Test {metric[current_task]} seed {seed}"] = [test_score]
             try:
                 table[f"Dev {metric[current_task]} seed {seed}"] = [dev_score]
@@ -86,8 +73,9 @@ def run_tasks(do_train, current_task, name_sub_info, data_path, model_identifier
 
         if not os.path.exists("results"):
             os.makedirs("results")
-            
-        table.to_csv(f"results/{run_name}_{str(name_sub_info)}_{current_task}.tsv", sep="\t")
+
+        table.to_csv(f"results/{run_name}_{str(name_sub_info)}_{current_task}.tsv", sep="\t",
+                index=False)
         print(f"Scores saved to results/{run_name}_{str(name_sub_info)}_{current_task}.tsv")
 
 
@@ -164,8 +152,8 @@ if __name__ == "__main__":
         for tsk, path_tsk in pathes_to_data.items():
             if checking_data(path_tsk, tsk) == False :
                 print(f'...Path to data for {tsk} task was not mentioned. Path to relevant dataset with default subtask {def_subtasks[tsk]} was used. ...')
-                path_tsk = True          
+                path_tsk = True
             run_models_for_current_task(do_train, tsk, name_sub_info, path_tsk, run_name, model_identifier, epochs, use_seqeval_evaluation_for_ner, max_length, batch_size, eval_batch_size, learning_rate, custom_wrapper, seed)
-    
+
     else:
         run_models_for_current_task(do_train, current_task, name_sub_info, data_path, run_name, model_identifier, epochs, use_seqeval_evaluation_for_ner, max_length, batch_size, eval_batch_size, learning_rate, custom_wrapper, seed)

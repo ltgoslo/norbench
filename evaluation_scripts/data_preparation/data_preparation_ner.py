@@ -109,8 +109,8 @@ class DatasetPreparstion(Dataset):
     
     
     def __getitem__(self, index):
-        source_text = ' '.join(self.source_text[index]).lower() + self.tokenizer.eos_token# + ' </s>'
-        target_text = self.reorganize_target_text(index).lower() + self.tokenizer.eos_token# + ' </s>'
+        source_text = ' '.join(self.source_text[index]).lower() + self.tokenizer.eos_token
+        target_text = self.reorganize_target_text(index).lower() + self.tokenizer.eos_token
         source = tokenization_func(self.tokenizer, source_text, self.text_len)
         target = tokenization_func(self.tokenizer, target_text, self.text_len)
 

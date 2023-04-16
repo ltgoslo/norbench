@@ -37,9 +37,12 @@ pos_tags, marked_tags, labels2words, entities2markedtags = entities_tokens()
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # For reproducibility:
-seed = 42
-np.random.seed(seed)
-python_random.seed(seed)
+def seed_everything(seed_value=42):
+    os.environ["PYTHONHASHSEED"] = str(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed_all(seed_value)
+    return seed_value
 
 pos_tags, marked_tags, labels2words, entities2markedtags = entities_tokens()    
     
@@ -154,7 +157,9 @@ def validating(model, tokenizer, dataloader, valid_stats, epoch):
     return valid_stats
 
 
-def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, max_length=512, batch_size=8, eval_batch_size=8, learning_rate=3e-5, custom_wrapper=False):
+def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, max_length=512, batch_size=8, eval_batch_size=8, learning_rate=3e-5, custom_wrapper=False, seed=42):
+
+    _ = seed_everything(seed)
 
     checkpoints_path = f"checkpoints/{task}/{sub_info}/{run_name}/"
     if not os.path.isdir(checkpoints_path):
@@ -169,11 +174,8 @@ def train_evaluation(data_path, sub_info, model_name, run_name, task, epochs, ma
         sys.path.append(model_name)
         print('You are using a custom wrapper, NOT a HuggingFace model.')
         from modeling_nort5 import NorT5ForConditionalGeneration
-        # tokenizer = T5TokenizerFast.from_pretrained(model_name)
         model = NorT5ForConditionalGeneration.from_pretrained(model_name).to(device)
     
-    # tokenizer.add_tokens(marked_tags)
-    # tokenizer.add_special_tokens({'eos_token': '<EOS>'})
     train_dataset, val_dataset, test_dataset  =  getting_data(tokenizer, data_path, batch_size=batch_size, max_length=max_length, eval_batch_size=eval_batch_size)
     optimizer, scheduler, scaler = initialize_opt_shed(model, train_dataset, epochs, learning_rate)
     training_stats = []
@@ -253,8 +255,10 @@ def generate_labels(true_tokens, pred_tokens):
     return new_origs_list, new_prediction_list
       
 
-def test(data_path, name_sub_info, model_identifier, tokenizer, current_task, run_name, batch_size=8, max_length=512, custom_wrapper=False):
+def test(data_path, name_sub_info, model_identifier, tokenizer, current_task, run_name, batch_size=8, max_length=512, custom_wrapper=False, seed=42):
     
+    _ = seed_everything(seed)
+
     if data_path == True:
         data_path = download_datasets(current_task, name_sub_info)
     
