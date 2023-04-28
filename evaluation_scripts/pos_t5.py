@@ -5,7 +5,7 @@ import torch
 import re
 import numpy as np
 from tqdm.auto import tqdm
-import tensorflow as tf
+#import tensorflow as tf
 from torch.cuda.amp import autocast, GradScaler
 from utils.model_utils import create_model, download_datasets
 import random as python_random
@@ -37,7 +37,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 seed = 42
 np.random.seed(seed)
 python_random.seed(seed)
-tf.random.set_seed(seed)
+#tf.random.set_seed(seed)
 
 pos_tags, marked_tags, labels2words, entities2markedtags = entities_tokens()    
     

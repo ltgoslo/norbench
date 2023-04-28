@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import glob
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 from utils.model_utils import create_model, download_datasets
 import random as python_random
 import data_preparation.data_preparation_ner as data_preparation_ner
@@ -33,7 +33,7 @@ tagset = data_preparation_ner.tagset
 seed = 42
 np.random.seed(seed)
 python_random.seed(seed)
-tf.random.set_seed(seed)
+#tf.random.set_seed(seed)
 
 def seq_ev_compute_metrics(p):
     "metrics that will be counted during evaluation"

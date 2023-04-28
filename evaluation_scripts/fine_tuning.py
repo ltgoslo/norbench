@@ -7,12 +7,12 @@ import torch
 from datetime import timedelta
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+#import tensorflow as tf
 from IPython.utils.text import columnize
 from sklearn.metrics import classification_report, f1_score
 from tqdm import tqdm
 import utils.utils as utils
-import utils.pos_utils as pos_utils
+#import utils.pos_utils as pos_utils
 import utils.model_utils as model_utils
 import data_preparation.data_preparation_pos as data_preparation_pos
 import random as python_random
@@ -25,7 +25,29 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 # For reproducibility:
 np.random.seed(42)
 python_random.seed(42)
-tf.random.set_seed(42)
+#tf.random.set_seed(42)
+
+def reconstruct_subwords(subword_locations, filtered_preds, logits):
+    """Assemble subwords back into the original word in the global lists
+    of tokens, labels and predictions, and select a predicted tag"""
+    new_preds = []
+    prev_end = 0
+
+    for start, end in subword_locations:
+        if len(set(filtered_preds[start:end])) > 1:
+            # Subword predictions do not all agree
+            temp = np.array([(M.max(), M.argmax()) for M in logits[start:end]])
+            prediction = temp[temp[:, 0].argmax(), 1]
+        else:
+            prediction = filtered_preds[start]
+        new_preds += filtered_preds[prev_end:start] + [prediction]
+        prev_end = end
+
+    # Last subword onwards
+    new_preds += filtered_preds[prev_end:]
+
+    return new_preds
+
 
 
 
@@ -194,7 +216,7 @@ class Trainer:
         filtered_logits = \
             preds[0].reshape((preds[0].shape[0] * preds[0].shape[1], preds[0].shape[2]))[
                 self.eval_info[dataset_name]["real_tokens"]]
-        new_preds = pos_utils.reconstruct_subwords(
+        new_preds = reconstruct_subwords(
             self.eval_info[dataset_name]["subword_locs"], filtered_preds, filtered_logits
         )
         assert len(new_preds) == len(self.eval_info[dataset_name]["all_labels"])
