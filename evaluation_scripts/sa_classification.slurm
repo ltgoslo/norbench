@@ -1,15 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=norbench
 #SBATCH --account=project_465000144
-#SBATCH --time=10:00:00
+#SBATCH --time=15:00:00
 #SBATCH --mem-per-cpu=7G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gpus-per-node=1
 #SBATCH --partition=standard-g
-
-source ${HOME}/.bashrc
 
 # Load modules
 module --quiet purge
@@ -27,12 +25,18 @@ export PYTHONPATH=$PYTHONUSERBASE/lib/python3.9/site-packages:$PYTHONPATH
 
 
 MODEL=${1}  # Path to the model or its HuggingFace name
-IDENTIFIER=${2}  # identifier to save the results and checkpoints with
-#SEED=${3}
+IDENTIFIER=${2}  # Identifier to save the results
+TYPE=${3}  # document or sentence? (type of the task)
 
 echo ${MODEL}
 echo ${IDENTIFIER}
+echo ${TYPE}
 
-# by default, pass on any remaining command-line options
-python3 norbench_run.py --path_to_model ${MODEL} --task sentiment --task_specific_info sentence --model_name ${IDENTIFIER} --batch_size 16 --max_length 512
+for SEED in 10 20 30 40 50
+do
+  echo ${SEED}
+  python3 sa_classification.py  -m ${MODEL} -i ${IDENTIFIER} --type ${TYPE} -d ../sentiment_analysis/${TYPE}/train.csv.gz -dev ../sentiment_analysis/${TYPE}/dev.csv.gz -t ../sentiment_analysis/${TYPE}/test.csv.gz -s ${SEED}
+done
 
+python3 analysis.py scores/${IDENTIFIER}_${TYPE}.tsv
+echo scores/${IDENTIFIER}_${TYPE}.tsv
