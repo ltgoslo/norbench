@@ -13,25 +13,19 @@ import tqdm
 from sklearn import metrics
 from torch.optim import AdamW
 from torch.utils import data
-from transformers import AutoTokenizer, T5ForConditionalGeneration, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 
 def encoder(labels, texts, cur_tokenizer, cur_device):
-    labels_tensor = cur_tokenizer(
-        labels,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=args.maxl,
-    ).to(cur_device)
     encoding = cur_tokenizer(
         texts,
+        text_target=labels,
         return_tensors="pt",
         padding=True,
         truncation=True,
         max_length=args.maxl,
     ).to(cur_device)
-    return labels_tensor, encoding
+    return encoding["labels"], encoding["input_ids"]
 
 
 def labels_6_to_3(df):
@@ -40,7 +34,6 @@ def labels_6_to_3(df):
     df.sentiment = df.sentiment.replace(3, 1)
     df.sentiment = df.sentiment.replace(4, 2)
     df.sentiment = df.sentiment.replace(5, 2)
-
     return df
 
 
@@ -64,25 +57,25 @@ if __name__ == "__main__":
     arg(
         "--model",
         "-m",
-        help="Path to a BERT model",
+        help="Path to a T5 model",
         required=True,
     )
     arg(
         "--trainset",
         "-d",
-        help="Path to a sentence classification train set",
+        help="Path to a classification train set",
         required=True,
     )
     arg(
         "--devset",
         "-dev",
-        help="Path to a sentence classification dev set",
+        help="Path to a classification dev set",
         required=True,
     )
     arg(
         "--testset",
         "-t",
-        help="Path to a sentence classification test set",
+        help="Path to a classification test set",
         required=True,
     )
     arg(
@@ -96,7 +89,6 @@ if __name__ == "__main__":
     arg("--bsize", "-b", type=int, help="Batch size", default=16)
     arg("--seed", "-s", type=int, help="Random seed", default=42)
     arg("--identifier", "-i", help="Model identifier", default="model")
-    arg("--freeze", "-f", action="store_true", help="Freeze the model?")
     arg("--custom", action="store_true", help="Custom wrapper?")
     arg("--save", help="Where to save the finetuned model")
 
@@ -124,7 +116,7 @@ if __name__ == "__main__":
     test_data = pd.read_csv(testset)
     logger.info("Test data reading complete.")
 
-    mapping = {0: "negativ", 1: "nøytral", 2: "positivt"}
+    mapping = {0: "negativ", 1: "nøytral", 2: "positiv"}
 
     if args.type == "sentence":
         logger.info("Fine-tuning for sentence-level sentiment analysis")
@@ -142,19 +134,13 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
 
     if args.custom:
-        logger.info('You are using a custom wrapper, NOT a HuggingFace model.')
+        logger.info("You are using a custom wrapper, NOT a HuggingFace model.")
         sys.path.append(modelname)
         from modeling_nort5 import NorT5ForConditionalGeneration
-        model = NorT5ForConditionalGeneration.from_pretrained(
-            modelname).to(device)
-    else:
-        model = AutoModelForSeq2SeqLM.from_pretrained(
-            modelname).to(device)
 
-    if args.freeze:
-        logger.info("Freezing the model, training only the classifier on top")
-        for param in model.base_model.parameters():
-            param.requires_grad = False
+        model = NorT5ForConditionalGeneration.from_pretrained(modelname).to(device)
+    else:
+        model = AutoModelForSeq2SeqLM.from_pretrained(modelname).to(device)
 
     model.train()
 
@@ -181,28 +167,17 @@ if __name__ == "__main__":
         test_labels, test_texts, tokenizer, device
     )
     dev_labels_tensor, dev_encoding = encoder(
-        dev_labels, dev_texts, tokenizer, device
-    )
+        dev_labels, dev_texts, tokenizer, device)
 
-    input_ids = train_encoding["input_ids"]
-    attention_mask = train_encoding["attention_mask"]
-    dev_input_ids = dev_encoding["input_ids"]
-    dev_attention_mask = dev_encoding["attention_mask"]
-    test_input_ids = test_encoding["input_ids"]
-    test_attention_mask = test_encoding["attention_mask"]
     logger.info("Tokenizing finished.")
 
-    train_dataset = data.TensorDataset(input_ids, attention_mask, train_labels_tensor.input_ids)
+    train_dataset = data.TensorDataset(train_encoding, train_labels_tensor)
     train_iter = data.DataLoader(train_dataset, batch_size=args.bsize, shuffle=True)
 
-    dev_dataset = data.TensorDataset(
-        dev_input_ids, dev_attention_mask, dev_labels_tensor.input_ids
-    )
+    dev_dataset = data.TensorDataset(dev_encoding, dev_labels_tensor)
     dev_iter = data.DataLoader(dev_dataset, batch_size=args.bsize, shuffle=False)
 
-    test_dataset = data.TensorDataset(
-        test_input_ids, test_attention_mask, test_labels_tensor.input_ids
-    )
+    test_dataset = data.TensorDataset(test_encoding, test_labels_tensor)
     test_iter = data.DataLoader(test_dataset, batch_size=args.bsize, shuffle=False)
 
     logger.info(f"Training with batch size {args.bsize} for {args.epochs} epochs...")
@@ -212,13 +187,9 @@ if __name__ == "__main__":
         losses = 0
         total_train_acc = 0
         all_predictions = []
-        for text, mask, label in tqdm.tqdm(train_iter):
+        for text, label in tqdm.tqdm(train_iter):
             optimizer.zero_grad()
-            outputs = model(
-                input_ids=text,
-                attention_mask=mask,
-                labels=label
-            )
+            outputs = model(input_ids=text, labels=label)
             loss = outputs.loss
             losses += loss.item()
             loss.backward()
@@ -230,29 +201,44 @@ if __name__ == "__main__":
         dev_predictions = []
         dev_labels = []
         with torch.no_grad():
-            for text, mask, label in tqdm.tqdm(dev_iter):
+            for text, label in tqdm.tqdm(dev_iter):
                 predictions = model.generate(
                     input_ids=text,
-                    attention_mask=mask,
-                    max_new_tokens=5,
+                    max_new_tokens=10,
                 )
-                predictions = tokenizer.batch_decode(predictions.cpu(), skip_special_tokens=True)
-                decoded_labels = tokenizer.batch_decode(label.cpu(), skip_special_tokens=True)
+                predictions = tokenizer.batch_decode(
+                    predictions.cpu(), skip_special_tokens=True
+                )
+                decoded_labels = tokenizer.batch_decode(
+                    label.cpu(), skip_special_tokens=True
+                )
                 mapped_predictions = [
-                    mapping[0] if mapping[0] in p else mapping[2] if mapping[2] in p else mapping[1]
-                    for p in predictions]
+                    mapping[0]
+                    if mapping[0] in p
+                    else mapping[2]
+                    if mapping[2] in p
+                    else mapping[1]
+                    for p in predictions
+                ]
                 mapped_labels = [
-                    mapping[0] if mapping[0] in p else mapping[2] if mapping[2] in p else mapping[1]
-                    for p in decoded_labels]
+                    mapping[0]
+                    if mapping[0] in p
+                    else mapping[2]
+                    if mapping[2] in p
+                    else mapping[1]
+                    for p in decoded_labels
+                ]
                 dev_predictions += mapped_predictions
                 dev_labels += mapped_labels
         precision, recall, fscore, support = metrics.precision_recall_fscore_support(
-            dev_labels, dev_predictions,
+            dev_labels,
+            dev_predictions,
             average="macro",
             zero_division=0,
         )
         logger.info(
-            f"Epoch: {epoch}, Train loss: {train_loss:.4f}, Dev F1: {fscore:.4f}")
+            f"Epoch: {epoch}, Train loss: {train_loss:.4f}, Dev F1: {fscore:.4f}"
+        )
         fscores.append(fscore)
         if len(fscores) > 2:
             if fscores[-1] < fscores[-2]:
@@ -269,20 +255,33 @@ if __name__ == "__main__":
     test_predictions = []
     test_labels = []
     with torch.no_grad():
-        for text, mask, label in tqdm.tqdm(test_iter):
+        for text, label in tqdm.tqdm(test_iter):
             predictions = model.generate(
                 input_ids=text,
-                attention_mask=mask,
-                max_new_tokens=5,
+                max_new_tokens=10,
             )
-            predictions = tokenizer.batch_decode(predictions.cpu(), skip_special_tokens=True)
-            decoded_labels = tokenizer.batch_decode(label.cpu(), skip_special_tokens=True)
+            predictions = tokenizer.batch_decode(
+                predictions.cpu(), skip_special_tokens=True
+            )
+            decoded_labels = tokenizer.batch_decode(
+                label.cpu(), skip_special_tokens=True
+            )
             mapped_predictions = [
-                mapping[0] if mapping[0] in p else mapping[2] if mapping[2] in p else mapping[1]
-                for p in predictions]
+                mapping[0]
+                if mapping[0] in p
+                else mapping[2]
+                if mapping[2] in p
+                else mapping[1]
+                for p in predictions
+            ]
             mapped_labels = [
-                mapping[0] if mapping[0] in p else mapping[2] if mapping[2] in p else mapping[1]
-                for p in decoded_labels]
+                mapping[0]
+                if mapping[0] in p
+                else mapping[2]
+                if mapping[2] in p
+                else mapping[1]
+                for p in decoded_labels
+            ]
             test_predictions += mapped_predictions
             test_labels += mapped_labels
 
@@ -291,9 +290,7 @@ if __name__ == "__main__":
     )
     scores.append(fscore)
     logger.info(
-        metrics.classification_report(
-            test_labels, test_predictions, zero_division=0
-        )
+        metrics.classification_report(test_labels, test_predictions, zero_division=0)
     )
 
     with open("scores/" + current_name + ".tsv", "a") as f:
