@@ -3,8 +3,8 @@
 <tr class="odd">
 <td style="text-align: left;"><strong>Model</strong></td>
 <td style="text-align: right;"><strong>Size</strong></td>
-<td style="text-align: left;"><strong>Doc. SA</strong></td>
-<td style="text-align: left;"><strong>Sent. SA</strong></td>
+<td style="text-align: left;"><strong>Document SA</strong></td>
+<td style="text-align: left;"><strong>Sentence SA</strong></td>
 <td style="text-align: left;"><strong>LingAcc</strong></td>
 <td style="text-align: right;"><strong>MT</strong></td>
 </tr>
