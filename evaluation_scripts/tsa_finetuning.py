@@ -1,10 +1,13 @@
-# Based on seq_label.py
-# Loads the json file made in helpers.ipynb with best epoch for all experiments
-# Runs the training and evaluation script without any saving of model
-# Records the predict_f1 for each seed
-# Arguement: A json file with the training parameters that are not overridden here. Use one for the initial training.
+"""
+A simplified version of the run_ner.py script from the transformers library, https://github.com/huggingface/transformers/tree/main/examples/pytorch/token-classification
+The script does sequence labeling, aka token classification, on datasets with BIO tags.
+Preferred usage is to pass a json file with configuration parameters as the only argument.
+Alternatively,  pass individual settings as keyword arguments. In default_params, the arguments that can be passed are defined.
+Any ModelArguments, DataTrainingArguments, TrainingArguments may be defined here or in the json file.
 
-# Model iteration is done here, so that this script should only be called once for all the experiments. The script reads the  test_setup.json where all models with their best epoch are stored.
+For each task, specify path to the dataset in "dataset_name", specify "task_name", "output_dir" and "label_column_name" as well.
+label_column_name is "tsa_tags" in the TSA dataset and  "ner_tags" in the NER dataset.
+"""
 
 
 # %%
@@ -44,7 +47,7 @@ print("Transformers:", transformers.__version__)
 hf_parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
 # default_params define what named parameters can be sent to the script
 default_params = { # Add entries here that you want to change or just track the value of
-    "model_name_or_path": "ltg/norbert3-small", #ms["brent0"] ,
+    "model_name_or_path": "ltg/norbert3-small",
     "dataset_name": "sentiment_analysis/tsa",
     "seed": 101,
     "per_device_train_batch_size": 32,
