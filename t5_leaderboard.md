@@ -42,7 +42,7 @@
 <td style="text-align: right;">36.0<span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><a href="https://huggingface.co/ltg/nort5-xs">T5<sub>base</sub></a></td>
+<td style="text-align: left;"><a href="https://huggingface.co/t5-base">T5<sub>base</sub></a></td>
 <td style="text-align: right;">223M</td>
 <td style="text-align: left;">47.2<span class="math inline"><sup> ± 3.5</sup></span></td>
 <td style="text-align: left;">41.3<span class="math inline"><sup> ± 3.2</sup></span></td>
