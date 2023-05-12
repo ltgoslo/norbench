@@ -14,8 +14,9 @@ The `evaluation_scripts` directory contains the recommended ready-to-use evaluat
 The tasks which are currently used in the NorBench leader-board are **emphasized in bold**.
 
 *See more details in our paper:*
-
 *[NorBench -- A Benchmark for Norwegian Language Models](https://openreview.net/forum?id=WgxNONkAbz) (Samuel et al, NoDaLiDa 2023)*
+
+*It also introduced a range of novel language models for Norwegian, check our [HuggingFace page](https://huggingface.co/ltg)*.
 
 ## Mainstream NLP tasks
 

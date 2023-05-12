@@ -17,7 +17,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>NorBERT<sub>3, x-small</sub></p></td>
+<p><a href="https://huggingface.co/ltg/norbert3-xs">NorBERT<sub>3, x-small</sub></a></p></td>
 <td style="text-align: right;">15M</td>
 <td style="text-align: right;"><strong>98.8</strong><span class="math inline"><sup> ± 0.1</sup></span></td>
 <td style="text-align: right;"><strong>97.0</strong><span class="math inline"><sup> ± 0.1</sup></span></td>
@@ -32,7 +32,7 @@
 </tr>
 <tr class="odd">
 <td style="text-align: left;">
-<p>NorBERT<sub>3, small</sub></p></td>
+<p><a href="https://huggingface.co/ltg/norbert3-small">NorBERT<sub>3, small</sub></a></p></td>
 <td style="text-align: right;">40M</td>
 <td style="text-align: right;"><strong>98.9</strong><span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;"><strong>97.9</strong><span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -47,7 +47,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>BERT<sub>base, cased</sub></p></td>
+<p><a href="https://huggingface.co/bert-base-cased">BERT<sub>base, cased</sub></a></p></td>
 <td style="text-align: right;">111M</td>
 <td style="text-align: right;">97.9<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">96.4<span class="math inline"><sup> ± 0.1</sup></span></td>
@@ -62,7 +62,7 @@
 </tr>
 <tr class="odd">
 <td style="text-align: left;">
-<p>NorBERT<sub>1</sub></p></td>
+<p><a href="https://huggingface.co/ltg/norbert">NorBERT<sub>1</sub></a></p></td>
 <td style="text-align: right;">111M</td>
 <td style="text-align: right;">98.8<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">97.8<span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -77,7 +77,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>NorBERT<sub>3, base</sub></p></td>
+<p><a href="https://huggingface.co/ltg/norbert3-base">NorBERT<sub>3, base</sub></a></p></td>
 <td style="text-align: right;">123M</td>
 <td style="text-align: right;"><strong>99.0</strong><span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;"><strong>98.3</strong><span class="math inline"><sup> ± 0.1</sup></span></td>
@@ -92,7 +92,7 @@
 </tr>
 <tr class="odd">
 <td style="text-align: left;">
-<p>NorBERT<sub>2</sub></p></td>
+<p><a href="https://huggingface.co/ltg/norbert2">NorBERT<sub>2</sub></a></p></td>
 <td style="text-align: right;">125M</td>
 <td style="text-align: right;">98.7<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">97.6<span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -107,7 +107,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>ScandiBERT</p></td>
+<p><a href="https://huggingface.co/vesteinn/ScandiBERT">ScandiBERT</a></p></td>
 <td style="text-align: right;">124M</td>
 <td style="text-align: right;">98.9<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">98.1<span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -122,7 +122,7 @@
 </tr>
 <tr class="odd">
 <td style="text-align: left;">
-<p>NB-BERT<sub>base</sub></p></td>
+<p><a href="https://huggingface.co/NbAiLab/nb-bert-base">NB-BERT<sub>base</sub></a></p></td>
 <td style="text-align: right;">178M</td>
 <td style="text-align: right;">98.9<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;"><strong>98.3</strong><span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -137,7 +137,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>mBERT</p></td>
+<p><a href="https://huggingface.co/bert-base-multilingual-cased">mBERT</a></p></td>
 <td style="text-align: right;">178M</td>
 <td style="text-align: right;">98.4<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">97.3<span class="math inline"><sup> ± 0.1</sup></span></td>
@@ -152,7 +152,7 @@
 </tr>
 <tr class="odd">
 <td style="text-align: left;">
-<p>XLM-R<sub>base</sub></p></td>
+<p><a href="https://huggingface.co/xlm-roberta-base">XLM-R<sub>base</sub></a></p></td>
 <td style="text-align: right;">278M</td>
 <td style="text-align: right;">98.8<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">97.7<span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -167,7 +167,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>NorBERT<sub>3, large</sub></p></td>
+<p><a href="https://huggingface.co/ltg/norbert3-large">NorBERT<sub>3, large</sub></a></p></td>
 <td style="text-align: right;">353M</td>
 <td style="text-align: right;"><strong>99.1</strong><span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;"><strong>98.5</strong><span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -182,7 +182,7 @@
 </tr>
 <tr class="odd">
 <td style="text-align: left;">
-<p>NB-BERT<sub>large</sub></p></td>
+<p><a href="https://huggingface.co/NbAiLab/nb-bert-large">NB-BERT<sub>large</sub></a></p></td>
 <td style="text-align: right;">355M</td>
 <td style="text-align: right;">98.7<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">98.2<span class="math inline"><sup> ± 0.1</sup></span></td>
@@ -197,7 +197,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>XLM-R<sub>large</sub></p></td>
+<p><a href="https://huggingface.co/xlm-roberta-large">XLM-R<sub>large</sub></a></p></td>
 <td style="text-align: right;">560M</td>
 <td style="text-align: right;">98.9<span class="math inline"><sup> ± 0.0</sup></span></td>
 <td style="text-align: right;">98.0<span class="math inline"><sup> ± 0.0</sup></span></td>

@@ -10,7 +10,7 @@
 </tr>
 <tr class="even">
 <td style="text-align: left;">
-<p>NorT5<sub>x-small</sub></p></td>
+<p><a href="https://huggingface.co/ltg/nort5-xs">NorT5<sub>x-small</sub></a></p></td>
 <td style="text-align: right;">32M</td>
 <td style="text-align: left;"><strong>70.1</strong><span class="math inline"><sup> ± 1.1</sup></span></td>
 <td style="text-align: left;"><strong>55.2</strong><span class="math inline"><sup> ± 13.6</sup></span></td>
@@ -18,7 +18,7 @@
 <td style="text-align: right;"><strong>82.1</strong><span class="math inline"><sup> ± 0.2</sup></span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">NorT5<sub>small</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/ltg/nort5-small">NorT5<sub>small</sub></a></td>
 <td style="text-align: right;">88M</td>
 <td style="text-align: left;"><strong>73.7</strong><span class="math inline"><sup> ± 1.4</sup></span></td>
 <td style="text-align: left;"><strong>73.2</strong><span class="math inline"><sup> ± 0.7</sup></span></td>
@@ -26,7 +26,7 @@
 <td style="text-align: right;"><strong>85.1</strong><span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">mT5<sub>small</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/google/mt5-small">mT5<sub>small</sub></a></td>
 <td style="text-align: right;">300M</td>
 <td style="text-align: left;">24.8<span class="math inline"><sup> ± 3.0</sup></span></td>
 <td style="text-align: left;">22.4<span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -34,7 +34,7 @@
 <td style="text-align: right;">33.2<span class="math inline"><sup> ± 0.3</sup></span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">North-T5<sub>small</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/north/t5_small_NCC">North-T5<sub>small</sub></a></td>
 <td style="text-align: right;">300M</td>
 <td style="text-align: left;">20.9<span class="math inline"><sup> ± 0.1</sup></span></td>
 <td style="text-align: left;">22.4<span class="math inline"><sup> ± 0.0</sup></span></td>
@@ -42,7 +42,7 @@
 <td style="text-align: right;">36.0<span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">T5<sub>base</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/ltg/nort5-xs">T5<sub>base</sub></a></td>
 <td style="text-align: right;">223M</td>
 <td style="text-align: left;">47.2<span class="math inline"><sup> ± 3.5</sup></span></td>
 <td style="text-align: left;">41.3<span class="math inline"><sup> ± 3.2</sup></span></td>
@@ -50,7 +50,7 @@
 <td style="text-align: right;">8.9<span class="math inline"><sup> ± 0.0</sup></span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">NorT5<sub>base</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/ltg/nort5-base">NorT5<sub>base</sub></a></td>
 <td style="text-align: right;">228M</td>
 <td style="text-align: left;"><strong>77.4</strong><span class="math inline"><sup> ± 0.4</sup></span></td>
 <td style="text-align: left;"><strong>73.4</strong><span class="math inline"><sup> ± 0.8</sup></span></td>
@@ -58,7 +58,7 @@
 <td style="text-align: right;"><strong>86.6</strong><span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">mT5<sub>base</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/google/mt5-base">mT5<sub>base</sub></a></td>
 <td style="text-align: right;">582M</td>
 <td style="text-align: left;">21.0<span class="math inline"><sup> ± 0.1</sup></span></td>
 <td style="text-align: left;">24.8<span class="math inline"><sup> ± 4.9</sup></span></td>
@@ -66,7 +66,7 @@
 <td style="text-align: right;">38.6<span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">North-T5<sub>base</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/north/t5_base_NCC">North-T5<sub>base</sub></a></td>
 <td style="text-align: right;">582M</td>
 <td style="text-align: left;">21.2<span class="math inline"><sup> ± 0.3</sup></span></td>
 <td style="text-align: left;">22.5<span class="math inline"><sup> ± 0.2</sup></span></td>
@@ -74,7 +74,7 @@
 <td style="text-align: right;">39.8<span class="math inline"><sup> ± 0.2</sup></span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">NorT5<sub>large</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/ltg/nort5-large">NorT5<sub>large</sub></a></td>
 <td style="text-align: right;">808M</td>
 <td style="text-align: left;"><strong>77.7</strong><span class="math inline"><sup> ± 0.5</sup></span></td>
 <td style="text-align: left;"><strong>76.9</strong><span class="math inline"><sup> ± 2.0</sup></span></td>
@@ -82,7 +82,7 @@
 <td style="text-align: right;"><strong>86.8</strong><span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">mT5<sub>large</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/google/mt5-large">mT5<sub>large</sub></a></td>
 <td style="text-align: right;">1 230M</td>
 <td style="text-align: left;">59.9<span class="math inline"><sup> ± 20.1</sup></span></td>
 <td style="text-align: left;">29.1<span class="math inline"><sup> ± 6.6</sup></span></td>
@@ -90,7 +90,7 @@
 <td style="text-align: right;">40.0<span class="math inline"><sup> ± 0.1</sup></span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">North-T5<sub>large</sub></td>
+<td style="text-align: left;"><a href="https://huggingface.co/north/t5_large_NCC">North-T5<sub>large</sub></a></td>
 <td style="text-align: right;">1 230M</td>
 <td style="text-align: left;">72.9<span class="math inline"><sup> ± 1.2</sup></span></td>
 <td style="text-align: left;">22.4<span class="math inline"><sup> ± 0.0</sup></span></td>
