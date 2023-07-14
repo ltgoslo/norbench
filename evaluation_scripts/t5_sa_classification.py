@@ -5,7 +5,6 @@ import argparse
 import logging
 import os
 import random
-import sys
 import numpy as np
 import pandas as pd
 import torch
@@ -89,7 +88,6 @@ if __name__ == "__main__":
     arg("--bsize", "-b", type=int, help="Batch size", default=16)
     arg("--seed", "-s", type=int, help="Random seed", default=42)
     arg("--identifier", "-i", help="Model identifier", default="model")
-    arg("--custom", action="store_true", help="Custom wrapper?")
     arg("--save", help="Where to save the finetuned model")
 
     args = parser.parse_args()
@@ -116,8 +114,6 @@ if __name__ == "__main__":
     test_data = pd.read_csv(testset)
     logger.info("Test data reading complete.")
 
-    mapping = {0: "negativ", 1: "nøytral", 2: "positiv"}
-
     if args.type == "sentence":
         logger.info("Fine-tuning for sentence-level sentiment analysis")
     elif args.type == "document":
@@ -133,14 +129,11 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
 
-    if args.custom:
-        logger.info("You are using a custom wrapper, NOT a HuggingFace model.")
-        sys.path.append(modelname)
-        from modeling_nort5 import NorT5ForConditionalGeneration
+    mapping = {0: "negativ", 1: "nøytral", 2: "positiv"}
+    label_ids = {el: tokenizer(mapping[el], add_special_tokens=False)["input_ids"][0]
+                 for el in mapping}
 
-        model = NorT5ForConditionalGeneration.from_pretrained(modelname).to(device)
-    else:
-        model = AutoModelForSeq2SeqLM.from_pretrained(modelname).to(device)
+    model = AutoModelForSeq2SeqLM.from_pretrained(modelname, trust_remote_code=True).to(device)
 
     model.train()
 
@@ -204,22 +197,30 @@ if __name__ == "__main__":
             for text, label in tqdm.tqdm(dev_iter):
                 predictions = model.generate(
                     input_ids=text,
-                    max_new_tokens=10,
+                    max_new_tokens=5,
+                    return_dict_in_generate=True,
+                    output_scores=True
                 )
-                predictions = tokenizer.batch_decode(
-                    predictions.cpu(), skip_special_tokens=True
-                )
+
                 decoded_labels = tokenizer.batch_decode(
                     label.cpu(), skip_special_tokens=True
                 )
-                mapped_predictions = [
-                    mapping[0]
-                    if mapping[0] in p
-                    else mapping[2]
-                    if mapping[2] in p
-                    else mapping[1]
-                    for p in predictions
+
+                marker_probabilities = [
+                    [p[label_ids[0]], p[label_ids[1]], p[label_ids[2]]]
+                    for p in predictions.scores[0].cpu()
                 ]
+
+                mapped_predictions = [
+                    mapping[np.argmax(p)]
+                    for p in marker_probabilities
+                ]
+                #predictions = tokenizer.batch_decode(
+                #    predictions.sequences.cpu(), skip_special_tokens=True
+                #)
+                #for generated, marker, pred in zip(predictions[:2], marker_probabilities[:2], mapped_predictions[:2]):
+                #    logger.info(f"{generated}\t{marker}\t{pred}")
+
                 mapped_labels = [
                     mapping[0]
                     if mapping[0] in p
@@ -258,22 +259,26 @@ if __name__ == "__main__":
         for text, label in tqdm.tqdm(test_iter):
             predictions = model.generate(
                 input_ids=text,
-                max_new_tokens=10,
+                max_new_tokens=5,
+                return_dict_in_generate=True,
+                output_scores=True
             )
-            predictions = tokenizer.batch_decode(
-                predictions.cpu(), skip_special_tokens=True
-            )
+            # predictions = tokenizer.batch_decode(
+            #     predictions.cpu(), skip_special_tokens=True
+            # )
             decoded_labels = tokenizer.batch_decode(
                 label.cpu(), skip_special_tokens=True
             )
             mapped_predictions = [
-                mapping[0]
-                if mapping[0] in p
-                else mapping[2]
-                if mapping[2] in p
-                else mapping[1]
-                for p in predictions
+                [p[label_ids[0]], p[label_ids[1]], p[label_ids[2]]]
+                for p in predictions.scores[0].cpu()
             ]
+
+            mapped_predictions = [
+                mapping[np.argmax(p)]
+                for p in mapped_predictions
+            ]
+
             mapped_labels = [
                 mapping[0]
                 if mapping[0] in p

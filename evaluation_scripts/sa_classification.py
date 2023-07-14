@@ -98,7 +98,6 @@ if __name__ == "__main__":
     arg("--seed", "-s", type=int, help="Random seed", default=42)
     arg("--identifier", "-i", help="Model identifier", default="model")
     arg("--freeze", "-f", action="store_true", help="Freeze the model?")
-    arg("--custom", action="store_true", help="Custom wrapper?")
     arg("--save", help="Where to save the finetuned model")
 
     args = parser.parse_args()
@@ -143,16 +142,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
 
-    if args.custom:
-        logger.info('You are using a custom wrapper, NOT a HuggingFace model.')
-        sys.path.append(modelname)
-        from modeling_norbert import NorbertForSequenceClassification
-        model = NorbertForSequenceClassification.from_pretrained(
-            modelname, num_labels=num_classes).to(device)
-    else:
-        model = AutoModelForSequenceClassification.from_pretrained(
-            modelname, num_labels=num_classes
-        ).to(device)
+    model = AutoModelForSequenceClassification.from_pretrained(
+            modelname, num_labels=num_classes, trust_remote_code=True).to(device)
 
     if args.freeze:
         logger.info("Freezing the model, training only the classifier on top")

@@ -31,11 +31,11 @@ More information on the website of [University of Oslo](https://www.mn.uio.no/if
 
 `TYPE` can be either `document` or `sentence`.
 
+For BERT-like models:
+
 `python3 sa_classification.py  -m PRETRAINED_MODEL -i RUN_NAME --type TYPE -d TRAIN_SET -dev DEV_SET -t TEST_SET -s RANDOM_SEED`
 
 For T5-like models:
 
 `python3 t5_sa_classification.py  -m PRETRAINED_MODEL -i RUN_NAME --type TYPE -d TRAIN_SET -dev DEV_SET -t TEST_SET -s RANDOM_SEED`
-
-Add `--custom` if using a custom wrapper (for example, for the LTGBert models).
 
