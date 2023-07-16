@@ -97,6 +97,10 @@ if __name__ == "__main__":
     devset = args.devset
     testset = args.testset
 
+    if "large" in args.identifier:
+        args.bsize = args.bsize - 4
+        logger.info(f"Decreasing batch size to {args.bsize} because of the model size")
+
     _ = seed_everything(args.seed)
     logger.info(f"Training with seed {args.seed}...")
 
@@ -127,6 +131,7 @@ if __name__ == "__main__":
     num_classes = train_data["sentiment"].nunique()
     logger.info(f"We have {num_classes} classes")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Device: {device}")
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
 
     mapping = {0: "negativ", 1: "nøytral", 2: "positiv"}

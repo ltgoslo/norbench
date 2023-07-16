@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=norbench
 #SBATCH --account=ec30
-#SBATCH --time=3:00:00
+#SBATCH --time=23:00:00
 #SBATCH --mem-per-cpu=7G
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8
