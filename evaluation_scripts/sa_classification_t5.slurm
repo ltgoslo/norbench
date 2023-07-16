@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=norbench
-#SBATCH --account=project_465000144
+#SBATCH --account=project_465000498
 #SBATCH --time=23:00:00
 #SBATCH --mem-per-cpu=7G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gpus-per-node=1
-#SBATCH --partition=standard-g
+#SBATCH --partition=small-g
 
 # Load modules
 module --quiet purge
@@ -36,7 +36,6 @@ for SEED in 10 20 30 40 50
 do
   echo ${SEED}
   # --maxl 256 if out of memory
-  # --custom if custom wrapper is used
   python3 t5_sa_classification.py  -m ${MODEL} -i ${IDENTIFIER} --type ${TYPE} -d ../sentiment_analysis/${TYPE}/train.csv.gz -dev ../sentiment_analysis/${TYPE}/dev.csv.gz -t ../sentiment_analysis/${TYPE}/test.csv.gz -s ${SEED}
 done
 
