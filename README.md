@@ -1,6 +1,6 @@
 # NorBench
-This repository contains an emerging attempt at compiling a comprehensive set 
-of NLP benchmarks for Norwegian, together with evaluation of the respective performance of various Norwegian language models on these tasks. 
+This repository contains an emerging attempt at compiling a comprehensive set
+of NLP benchmarks for Norwegian, together with evaluation of the respective performance of various Norwegian language models on these tasks.
 
 - [Masked language models (MLM) leaderboard](leaderboard.md)
 
