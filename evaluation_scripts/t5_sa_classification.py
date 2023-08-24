@@ -87,6 +87,7 @@ if __name__ == "__main__":
     arg("--maxl", "-l", type=int, help="Max length", default=512)
     arg("--bsize", "-b", type=int, help="Batch size", default=16)
     arg("--seed", "-s", type=int, help="Random seed", default=42)
+    arg("--learning_rate", "-lr", type=float, help="Learning rate", default=1e-4)
     arg("--identifier", "-i", help="Model identifier", default="model")
     arg("--save", help="Where to save the finetuned model")
 
@@ -142,7 +143,7 @@ if __name__ == "__main__":
 
     model.train()
 
-    optimizer = AdamW(model.parameters(), lr=1e-5)
+    optimizer = AdamW(model.parameters(), lr=args.lr)
 
     train_texts = train_data.review.to_list()
     text_labels = train_data.sentiment.to_list()
@@ -178,7 +179,8 @@ if __name__ == "__main__":
     test_dataset = data.TensorDataset(test_encoding, test_labels_tensor)
     test_iter = data.DataLoader(test_dataset, batch_size=args.bsize, shuffle=False)
 
-    logger.info(f"Training with batch size {args.bsize} for {args.epochs} epochs...")
+    logger.info(f"Training with batch size {args.bsize} and learning rate {args.lr} "
+                f"for {args.epochs} epochs...")
 
     fscores = []
     for epoch in range(args.epochs):
@@ -220,10 +222,11 @@ if __name__ == "__main__":
                     mapping[np.argmax(p)]
                     for p in marker_probabilities
                 ]
-                #predictions = tokenizer.batch_decode(
+                # predictions = tokenizer.batch_decode(
                 #    predictions.sequences.cpu(), skip_special_tokens=True
-                #)
-                #for generated, marker, pred in zip(predictions[:2], marker_probabilities[:2], mapped_predictions[:2]):
+                # )
+                # for generated, marker, pred in zip(predictions[:2], marker_probabilities[:2],
+                # mapped_predictions[:2]):
                 #    logger.info(f"{generated}\t{marker}\t{pred}")
 
                 mapped_labels = [
@@ -268,9 +271,7 @@ if __name__ == "__main__":
                 return_dict_in_generate=True,
                 output_scores=True
             )
-            # predictions = tokenizer.batch_decode(
-            #     predictions.cpu(), skip_special_tokens=True
-            # )
+
             decoded_labels = tokenizer.batch_decode(
                 label.cpu(), skip_special_tokens=True
             )
