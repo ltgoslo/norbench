@@ -8,7 +8,6 @@ from tqdm import tqdm
 import torchmetrics
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from modeling_norbert import NorbertForSequenceClassification
 
 from dataset import ColaDataset, CollateFunctor
 
@@ -16,7 +15,7 @@ from dataset import ColaDataset, CollateFunctor
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model", default="../nb-bert-base", type=str)
+    parser.add_argument("--model", default="ltg/norbert3-base", type=str)
     parser.add_argument("--task", default="cola", type=str, help="GLUE task.")
     parser.add_argument("--lr", default=1.0e-5, type=float, help="BERT learning rate.")
     parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
@@ -47,11 +46,7 @@ if __name__ == "__main__":
         device = setup_training(seed)
 
         tokenizer = AutoTokenizer.from_pretrained(args.model)
-
-        if "norbert" in args.model.lower():
-            model = NorbertForSequenceClassification.from_pretrained(args.model, num_labels=2).to(device)
-        else:
-            model = AutoModelForSequenceClassification.from_pretrained(args.model, num_labels=2).to(device)
+        model = AutoModelForSequenceClassification.from_pretrained(args.model, num_labels=2, trust_remote_code=True).to(device)
 
         train_set = ColaDataset("./data/NoCoLa_class_train.txt")
         valid_set = ColaDataset("./data/NoCoLa_class_dev.txt")

@@ -8,7 +8,6 @@ from tqdm import tqdm
 import torchmetrics
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from modeling_nort5 import NorT5ForConditionalGeneration
 
 from dataset_t5 import ColaDataset, CollateFunctor
 
@@ -16,7 +15,7 @@ from dataset_t5 import ColaDataset, CollateFunctor
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model", default="../../../../final_models/nort5-base", type=str)
+    parser.add_argument("--model", default="ltg/nort5-base", type=str)
     parser.add_argument("--task", default="cola", type=str, help="GLUE task.")
     parser.add_argument("--lr", default=5.0e-6, type=float, help="BERT learning rate.")
     parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
@@ -47,20 +46,14 @@ if __name__ == "__main__":
         device = setup_training(seed)
 
         tokenizer = AutoTokenizer.from_pretrained(args.model)
-
-        if "nort5" in args.model.lower():
-            model = NorT5ForConditionalGeneration.from_pretrained(args.model).to(device)
-        else:
-            model = AutoModelForSeq2SeqLM.from_pretrained(args.model).to(device)
-
-        model = NorT5ForConditionalGeneration.from_pretrained(args.model).to(device)
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.model, trust_remote_code=True).to(device)
 
         n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"{n_params}", flush=True)
 
-        train_set = ColaDataset("../datasets/nocola/NoCoLa_class_train.txt")
-        valid_set = ColaDataset("../datasets/nocola/NoCoLa_class_dev.txt")
-        test_set = ColaDataset("../datasets/nocola/NoCoLa_class_test.txt")
+        train_set = ColaDataset("./data/NoCoLa_class_train.txt")
+        valid_set = ColaDataset("./data/NoCoLa_class_dev.txt")
+        test_set = ColaDataset("./data/NoCoLa_class_test.txt")
 
         if args.task == "cola":
             metrics = {
