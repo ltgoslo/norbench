@@ -6,7 +6,6 @@ import sys
 from statistics import stdev, mean
 from datasets import Dataset, DatasetDict, load_metric
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, TrainingArguments, Trainer, default_data_collator
-from modeling_norbert import NorbertForQuestionAnswering
 import numpy as np
 
 
@@ -197,10 +196,7 @@ results = None
 
 for seed in [1234, 2345, 3456, 4567, 5678]:
 
-    if "norbert" in model_checkpoint.lower():
-        model = NorbertForQuestionAnswering.from_pretrained(model_checkpoint)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
+    model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint, trust_remote_code=True)
 
     model_name = model_checkpoint.split("/")[-1]
     args = TrainingArguments(
