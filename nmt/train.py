@@ -7,8 +7,7 @@ from statistics import mean, stdev
 from tqdm import tqdm
 import torchmetrics
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM  #, GenerationConfig
-from modeling_nort5_cache import NorT5ForConditionalGeneration
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from dataset import Dataset, CollateFunctor
 
@@ -43,10 +42,10 @@ class BleuScore(torchmetrics.SacreBLEUScore):
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model", default="../final_models/nort5-base", type=str)
+    parser.add_argument("--model", default="ltg/nort5-base", type=str)
     parser.add_argument("--lr", default=2.0e-5, type=float, help="BERT learning rate.")
     parser.add_argument("--weight_decay", default=0.1, type=float, help="BERT learning rate.")
-    parser.add_argument("--warmup_portion", default=0.05, type=float, help="BERT learning rate.")
+    parser.add_argument("--warmup_portion", default=0.06, type=float, help="BERT learning rate.")
     parser.add_argument("--max_length", default=128, type=int, help="BERT learning rate.")
     parser.add_argument("--acummulation_steps", default=1, type=int)
     parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
@@ -75,15 +74,11 @@ if __name__ == "__main__":
         device = setup_training(seed, args)
 
         tokenizer = AutoTokenizer.from_pretrained(args.model)
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.model, trust_remote_code=True).to(device)
 
-        if "old" in args.model:
-            model = AutoModelForSeq2SeqLM.from_pretrained(args.model).to(device)
-        else:
-            model = NorT5ForConditionalGeneration.from_pretrained(args.model).to(device)
-
-        train_set = Dataset("nb_nn_train.tsv.gz", limit=True)
-        valid_set = Dataset("nb_nn_dev.tsv.gz", limit=True)
-        test_set = Dataset("nb_nn_test.tsv.gz", limit=True)
+        train_set = Dataset("data/nb_nn_train.tsv.gz")
+        valid_set = Dataset("data/nb_nn_dev.tsv.gz")
+        test_set = Dataset("data/nb_nn_test.tsv.gz")
 
         metrics = {
             "BLEU": BleuScore(),
@@ -188,9 +183,7 @@ if __name__ == "__main__":
                         predictions = model.generate(
                             input_ids=source_ids,
                             attention_mask=attention_mask,
-                            do_sample = False, # dette forstår jeg ikke ennå 
                             max_new_tokens = 128, 
-                            top_k = 0, 
                         )
                         sources = tokenizer.batch_decode(source_ids.cpu(), skip_special_tokens=True)
                         predictions = tokenizer.batch_decode(predictions.cpu(), skip_special_tokens=True)
@@ -230,22 +223,20 @@ if __name__ == "__main__":
                         predictions = model.generate(
                             input_ids=source_ids,
                             attention_mask=attention_mask,
+                            max_new_tokens = 128, 
                         )
                         sources = tokenizer.batch_decode(source_ids.cpu(), skip_special_tokens=True)
                         predictions = tokenizer.batch_decode(predictions.cpu(), skip_special_tokens=True)
                         targets = tokenizer.batch_decode(target_ids.cpu(), skip_special_tokens=True)
 
-                        if i == 0:
-                            for s, p, t in zip(sources, predictions, targets):
-                                print(f"SOURCE:{s}\nGOLD:  {t}\nPRED:  {p}\n", flush=True)
                         for metric in metrics.values():
                             metric.update(
                                 predictions,
                                 targets
                             )
 
-        for metric_name, metric in metrics.items():
-            results[f"valid/{metric_name}"] = metric.compute().item() * 100.0
+            for metric_name, metric in metrics.items():
+                results[f"test/{metric_name}"] = metric.compute().item() * 100.0
 
         print(results, flush=True)
 

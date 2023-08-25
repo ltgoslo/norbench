@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 
 
 class Dataset(Dataset):
-    def __init__(self, path: str, limit=False):
+    def __init__(self, path: str):
         self.nb = []
         self.nn = []
 
@@ -16,9 +16,6 @@ class Dataset(Dataset):
 
             self.nb.append(nb)
             self.nn.append(nn)
-
-            if limit and i >= 10_000-1:
-                break
 
     def __getitem__(self, index):
         return self.nb[index], self.nn[index]
