@@ -1,3 +1,10 @@
+## Leaderboard for encoder-decoder models
+
+**Important: the scores below reflect the models' performance with a specific combination of hyperparameters (see [the paper](https://aclanthology.org/2023.nodalida-1.61/) for full description).**
+
+**We did our best to use sensible values, but your mileage may vary if you choose a different hyperparameter combination.**
+**The *NorBench* leaderboard should not be considered an ultimate truth. It is rather a rough estimation of the models' capabilities.**
+
 <table>
 <tbody>
 <tr class="odd">
