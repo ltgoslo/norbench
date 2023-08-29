@@ -221,7 +221,7 @@
 </tbody>
 </table>
 
-NorBench scores for different language models. We report the mean and standard deviation
+We report the mean and standard deviation
 statistics over 5 runs. The
 'Size' column reports the number of parameters in the model; the models
 are sorted by this value. The best

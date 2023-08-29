@@ -107,7 +107,7 @@
 </tbody>
 </table>
 
-NorBench scores for encoder-decoder models, evaluated in a generative text-to-text setting via comparing the probabilities of generated marker tokens. 
+The classification models are evaluated in a generative text-to-text setting via comparing the probabilities of generated marker tokens. 
 The best results (within one standard deviation) in each category are typeset in bold.
 
 SA stands for `sentiment analysis`, LingAcc for `linguistic acceptability`, MT for `machine translation`.
