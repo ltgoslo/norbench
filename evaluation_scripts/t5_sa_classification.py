@@ -11,6 +11,7 @@ import torch
 import tqdm
 from sklearn import metrics
 from torch.optim import AdamW
+from transformers.optimization import Adafactor
 from torch.utils import data
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
@@ -83,6 +84,12 @@ if __name__ == "__main__":
         help="Sentence or document classification",
         default="sentence",
     )
+    arg(
+        "--optimizer",
+        choices=["AdamW", "Adafactor"],
+        help="What optimizer to use during finetuning",
+        default="AdamW",
+    )
     arg("--epochs", "-e", type=int, help="Number of epochs", default=10)
     arg("--maxl", "-l", type=int, help="Max length", default=512)
     arg("--bsize", "-b", type=int, help="Batch size", default=16)
@@ -106,6 +113,10 @@ if __name__ == "__main__":
     logger.info(f"Training with seed {args.seed}...")
 
     current_name = "_".join([args.identifier, args.type])
+
+    if not os.path.isfile(f"scores/{current_name}_validation.tsv"):
+        with open(f"scores/{current_name}_validation.tsv", "a") as f:
+            f.write(f"epoch\ttrain_loss\tdev_f1\tseed\n")
 
     logger.info("Reading train data...")
     train_data = pd.read_csv(dataset)
@@ -143,7 +154,21 @@ if __name__ == "__main__":
 
     model.train()
 
-    optimizer = AdamW(model.parameters(), lr=args.lr)
+    if args.optimizer == "Adafactor":
+        optimizer = Adafactor(
+        model.parameters(),
+        lr=args.learning_rate,
+        eps=(1e-30, 1e-3),
+        clip_threshold=1.0,
+        decay_rate=-0.8,
+        beta1=None,
+        weight_decay=0.0,
+        relative_step=False,
+        scale_parameter=False,
+        warmup_init=False,
+    )
+    else:
+        optimizer = AdamW(model.parameters(), lr=args.learning_rate)
 
     train_texts = train_data.review.to_list()
     text_labels = train_data.sentiment.to_list()
@@ -179,7 +204,7 @@ if __name__ == "__main__":
     test_dataset = data.TensorDataset(test_encoding, test_labels_tensor)
     test_iter = data.DataLoader(test_dataset, batch_size=args.bsize, shuffle=False)
 
-    logger.info(f"Training with batch size {args.bsize} and learning rate {args.lr} "
+    logger.info(f"Training with batch size {args.bsize} and learning rate {args.learning_rate} "
                 f"for {args.epochs} epochs...")
 
     fscores = []
@@ -249,10 +274,15 @@ if __name__ == "__main__":
             f"Epoch: {epoch}, Train loss: {train_loss:.4f}, Dev F1: {fscore:.4f}"
         )
         fscores.append(fscore)
+
+        with open(f"scores/{current_name}_validation.tsv", "a") as f:
+            f.write(f"{epoch}\t{train_loss}\t{fscore}\t{args.seed}\n")
+
         if len(fscores) > 2:
             if fscores[-1] < fscores[-2]:
                 logger.info("Early stopping!")
-                break
+                logger.info("...but continuing for test purposes")
+                # break
         model.train()
 
     # Final testing on the test set
