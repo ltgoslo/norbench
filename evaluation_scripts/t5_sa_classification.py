@@ -13,7 +13,13 @@ from sklearn import metrics
 from torch.optim import AdamW
 from transformers.optimization import Adafactor, AdafactorSchedule
 from torch.utils import data
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, get_scheduler, get_constant_schedule_with_warmup, get_constant_schedule
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSeq2SeqLM,
+    get_scheduler,
+    get_constant_schedule_with_warmup,
+    get_constant_schedule,
+)
 
 
 def encoder(labels, texts, cur_tokenizer, cur_device):
@@ -147,26 +153,30 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
 
     mapping = {0: "negativ", 1: "nøytral", 2: "positiv"}
-    label_ids = {el: tokenizer(mapping[el], add_special_tokens=False)["input_ids"][0]
-                 for el in mapping}
+    label_ids = {
+        el: tokenizer(mapping[el], add_special_tokens=False)["input_ids"][0]
+        for el in mapping
+    }
 
-    model = AutoModelForSeq2SeqLM.from_pretrained(modelname, trust_remote_code=True).to(device)
+    model = AutoModelForSeq2SeqLM.from_pretrained(modelname, trust_remote_code=True).to(
+        device
+    )
 
     model.train()
 
     if args.optimizer == "Adafactor":
         optimizer = Adafactor(
-        model.parameters(),
-        lr=args.learning_rate,
-        eps=(1e-30, 1e-3),
-        clip_threshold=1.0,
-        decay_rate=-0.8,
-        beta1=None,
-        weight_decay=0.0,
-        relative_step=False,
-        scale_parameter=False,
-        warmup_init=False,
-    )
+            model.parameters(),
+            lr=args.learning_rate,
+            eps=(1e-30, 1e-3),
+            clip_threshold=1.0,
+            decay_rate=-0.8,
+            beta1=None,
+            weight_decay=0.0,
+            relative_step=False,
+            scale_parameter=False,
+            warmup_init=False,
+        )
     else:
         optimizer = AdamW(model.parameters(), lr=args.learning_rate)
 
@@ -190,8 +200,7 @@ if __name__ == "__main__":
     test_labels_tensor, test_encoding = encoder(
         test_labels, test_texts, tokenizer, device
     )
-    dev_labels_tensor, dev_encoding = encoder(
-        dev_labels, dev_texts, tokenizer, device)
+    dev_labels_tensor, dev_encoding = encoder(dev_labels, dev_texts, tokenizer, device)
 
     logger.info("Tokenizing finished.")
 
@@ -204,17 +213,18 @@ if __name__ == "__main__":
     test_dataset = data.TensorDataset(test_encoding, test_labels_tensor)
     test_iter = data.DataLoader(test_dataset, batch_size=args.bsize, shuffle=False)
 
-    logger.info(f"Training with batch size {args.bsize} and learning rate {args.learning_rate} "
-                f"for {args.epochs} epochs...")
+    logger.info(
+        f"Training with batch size {args.bsize} and learning rate {args.learning_rate} "
+        f"for {args.epochs} epochs..."
+    )
 
     if args.optimizer == "Adafactor":
         lr_scheduler = get_constant_schedule_with_warmup(
             optimizer=optimizer,
             num_warmup_steps=1000,
-            )
+        )
     else:
-        lr_scheduler = get_constant_schedule(
-                optimizer=optimizer)
+        lr_scheduler = get_constant_schedule(optimizer=optimizer)
 
     fscores = []
     for epoch in range(args.epochs):
@@ -241,7 +251,7 @@ if __name__ == "__main__":
                     input_ids=text,
                     max_new_tokens=5,
                     return_dict_in_generate=True,
-                    output_scores=True
+                    output_scores=True,
                 )
 
                 decoded_labels = tokenizer.batch_decode(
@@ -254,8 +264,7 @@ if __name__ == "__main__":
                 ]
 
                 mapped_predictions = [
-                    mapping[np.argmax(p)]
-                    for p in marker_probabilities
+                    mapping[np.argmax(p)] for p in marker_probabilities
                 ]
                 # predictions = tokenizer.batch_decode(
                 #    predictions.sequences.cpu(), skip_special_tokens=True
@@ -309,7 +318,7 @@ if __name__ == "__main__":
                 input_ids=text,
                 max_new_tokens=5,
                 return_dict_in_generate=True,
-                output_scores=True
+                output_scores=True,
             )
 
             decoded_labels = tokenizer.batch_decode(
@@ -320,10 +329,7 @@ if __name__ == "__main__":
                 for p in predictions.scores[0].cpu()
             ]
 
-            mapped_predictions = [
-                mapping[np.argmax(p)]
-                for p in mapped_predictions
-            ]
+            mapped_predictions = [mapping[np.argmax(p)] for p in mapped_predictions]
 
             mapped_labels = [
                 mapping[0]
