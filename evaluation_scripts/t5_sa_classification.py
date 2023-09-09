@@ -11,9 +11,9 @@ import torch
 import tqdm
 from sklearn import metrics
 from torch.optim import AdamW
-from transformers.optimization import Adafactor
+from transformers.optimization import Adafactor, AdafactorSchedule
 from torch.utils import data
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, get_scheduler, get_constant_schedule_with_warmup, get_constant_schedule
 
 
 def encoder(labels, texts, cur_tokenizer, cur_device):
@@ -207,6 +207,15 @@ if __name__ == "__main__":
     logger.info(f"Training with batch size {args.bsize} and learning rate {args.learning_rate} "
                 f"for {args.epochs} epochs...")
 
+    if args.optimizer == "Adafactor":
+        lr_scheduler = get_constant_schedule_with_warmup(
+            optimizer=optimizer,
+            num_warmup_steps=1000,
+            )
+    else:
+        lr_scheduler = get_constant_schedule(
+                optimizer=optimizer)
+
     fscores = []
     for epoch in range(args.epochs):
         losses = 0
@@ -219,6 +228,7 @@ if __name__ == "__main__":
             losses += loss.item()
             loss.backward()
             optimizer.step()
+            lr_scheduler.step()
         train_loss = losses / len(train_iter)
 
         # Testing on the dev set:
