@@ -1,6 +1,5 @@
 # NorBench
-This repository contains an emerging attempt at compiling a comprehensive set
-of NLP benchmarks for Norwegian, together with evaluation of the respective performance of various Norwegian language models on these tasks.
+This repository contains an emerging attempt at compiling a comprehensive set of NLP benchmarks for Norwegian, together with evaluation of the respective performance of various Norwegian language models on these tasks.
 
 - [Masked language models (MLM) leaderboard](leaderboard.md)
 
@@ -11,7 +10,7 @@ and provide links to the original evaluation code (where available).
 The `evaluation_scripts` directory contains the recommended ready-to-use evaluation scripts for the main tasks
 (warning: work in progress!)
 
-The tasks which are currently used in the NorBench leader-board are **emphasized in bold**.
+The tasks that are currently used in the NorBench leaderboard are **emphasized in bold**, and the benchmark is publicly hosted [on the HuggingFace](https://huggingface.co/datasets/ltg/norbench).
 
 *See more details in our paper:*
 *[NorBench -- A Benchmark for Norwegian Language Models](https://aclanthology.org/2023.nodalida-1.61/) (Samuel et al, NoDaLiDa 2023)*
